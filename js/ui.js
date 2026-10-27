@@ -4,15 +4,16 @@ import { store } from './almacen.js';
 
 export const ui = {
   tab: store.game ? 'game' : 'settings',
-  view: null,
-  sel: [],
+  view: null,          // 'call' mientras se registra un llamado
+  sel: [],             // jugadores marcados para la línea
   selFor: null,
   ratioSwap: false,
-  pull: null,
+  pull: null,          // pasos del pull en curso
+  pick: null,          // elegir jugador (gol, drop, block)
   call: null,
   modal: null,
   toast: null,
-  firstOffense: 'us',
+  ignoreClickUntil: 0, // evita toques "fantasma" justo después de cronometrar
   newP: { num: '', name: '', g: 'M' },
   bulk: ''
 };

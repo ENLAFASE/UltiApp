@@ -5,8 +5,17 @@
 const KEY = 'ufs-v1';
 
 export const DEF_CFG = {
-  club: 'Mi Club', rival: 'Rival', pointsToWin: 15, halfAt: 8, timeouts: 2,
-  softCap: 0, hardCap: 0, mixed: true, startRatio: '4M3F', abba: true
+  club: 'Mi Club', rival: 'Rival',
+  pointsToWin: 15,
+  halfMode: 'points',   // medio tiempo 'points' (por puntos) o 'time' (por minutos)
+  halfAt: 8,            // puntos para el medio tiempo
+  halfMin: 0,           // minutos para el medio tiempo
+  timeouts: 2,          // timeouts por equipo
+  toSecs: 60,           // duración de cada timeout, en segundos
+  softCap: 0,           // cap blando, en minutos (0 = sin cap)
+  hardCap: 0,           // duración total del partido, en minutos (0 = sin límite)
+  firstPull: 'us',      // quién saca el primer pull
+  mixed: true, startRatio: '4M3F', abba: true
 };
 
 function cargar() {
@@ -17,13 +26,20 @@ function cargar() {
       d.cfg = Object.assign({}, DEF_CFG, d.cfg || {});
       d.roster = d.roster || [];
       d.game = d.game || null;
+      // Partidos guardados con el reloj antiguo (que se iniciaba a mano).
+      if (d.game && d.game.clock && d.game.start === undefined) {
+        const c = d.game.clock;
+        d.game.start = c.since ? c.since - c.acc : (c.acc ? Date.now() - c.acc : null);
+        delete d.game.clock;
+      }
       return d;
     }
   } catch (e) {}
   return { cfg: Object.assign({}, DEF_CFG), roster: [], game: null };
 }
 
-// store = todo lo guardado: configuración (cfg), plantel (roster) y partido en curso (game)
+// store = todo lo guardado: configuración (cfg), plantel (roster) y partido en curso (game).
+// game.start = hora en que salió el primer pull (ahí parte el reloj del partido).
 export const store = cargar();
 
 export function save() {

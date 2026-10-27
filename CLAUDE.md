@@ -88,6 +88,16 @@ UltiApp/
 
 Más adelante se agregarán `js/coach/` (estadísticas, valoraciones, recomendador) y `js/jugador/` (carta, logros, kudos).
 
+### Pestaña Partido: reglas de diseño (pedidas por el usuario)
+
+- **Nunca desplazar:** cada pantalla cabe completa en el alto del teléfono (`#app.full`, `.scr`, grillas que se estiran). Probar en 375×667.
+- **Secuencial:** solo se muestran las acciones posibles en cada momento: línea → pull → ¿quién recoge? → pases / gol / throwaway / drop / stall → (turnover) → defensa (block, error rival, gol rival). Llamado y timeout siempre a mano en la barra inferior.
+- **Línea:** arriba ATAQUE/DEFENSA y proporción (si es mixto). Máximo 7; aviso si hay menos de 7 o la proporción no calza. "Sugerir" siempre completa 7.
+- **Pull:** quién saca se deduce (primer pull en Ajustes; luego saca quien anotó; en la 2.ª mitad recibe quien sacó primero). Mi equipo: ¿quién saca? → cronometrar (tocar al soltar, luego tocar cualquier parte) → dentro/fuera. Rival: no se cronometra. Al elegir dentro/fuera pasa solo al juego.
+- **Reloj:** parte al soltar el primer pull (`game.start`), no se pausa, se congela al terminar (`game.finishedAt`).
+- **Timeout:** cuenta regresiva de `cfg.toSecs` segundos sin detener el reloj; no se permiten más que `cfg.timeouts` por equipo.
+- **Llamado:** pantalla completa con 4 pasos numerados (quién llama, tipo, resolución, posesión).
+
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
 
 Principio de datos: un partido es una **lista ordenada de eventos** (line, pull, pickup, pass, goal, themGoal, throwaway, drop, stall, block, themTurn, call, timeout, end). El marcador y las estadísticas se calculan con `derive()` a partir de esa lista. Así es fácil deshacer, revisar un partido y sincronizar después con Supabase. Los nombres internos de eventos y campos siguen en inglés como en el prototipo, para no romper datos ya guardados.

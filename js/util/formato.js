@@ -16,6 +16,9 @@ export function fmt(ms) {
   return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
 }
 
+// Cuenta regresiva: redondea hacia arriba, así muestra "00:01" hasta el último instante.
+export function fmtCuenta(ms) { return fmt(Math.max(0, ms) + 999); }
+
 // Fecha de hoy como "2026-10-26", para nombres de archivo.
 export function fileStamp() {
   const d = new Date();

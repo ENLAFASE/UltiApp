@@ -17,8 +17,19 @@ export function viewSettings() {
   h += '<h2 class="h2 disp">Partido</h2>';
   h += '<div class="grid2"><div class="field"><label class="lbl" for="f_club">Mi equipo</label><input id="f_club" data-cfg="club" value="' + esc(c.club) + '"></div>' +
     '<div class="field"><label class="lbl" for="f_rival">Rival</label><input id="f_rival" data-cfg="rival" value="' + esc(c.rival) + '"></div></div>';
-  h += '<div class="grid2">' + numField('pointsToWin', 'Puntos para ganar') + numField('halfAt', 'Medio tiempo en') + numField('timeouts', 'Timeouts por equipo') + '<div></div>' +
-    numField('softCap', 'Cap blando (min)', '0 = sin cap') + numField('hardCap', 'Cap duro (min)', '0 = sin cap') + '</div>';
+  h += '<div class="grid2">' + numField('pointsToWin', 'Puntos para ganar') +
+    numField('hardCap', 'Duración total (min)', '0 = sin límite de tiempo') + '</div>';
+
+  h += '<div class="grid2"><div class="field"><label class="lbl" for="f_halfMode">Medio tiempo</label><select id="f_halfMode" data-cfg="halfMode">' +
+    '<option value="points"' + (c.halfMode !== 'time' ? ' selected' : '') + '>Por puntos</option>' +
+    '<option value="time"' + (c.halfMode === 'time' ? ' selected' : '') + '>Por tiempo</option></select></div>' +
+    (c.halfMode === 'time'
+      ? numField('halfMin', 'Minutos para el medio tiempo', 'Se hace al terminar el punto en juego')
+      : numField('halfAt', 'Puntos para el medio tiempo')) + '</div>';
+
+  h += '<div class="grid2">' + numField('softCap', 'Cap blando (min)', '0 = sin cap') +
+    numField('timeouts', 'Timeouts por equipo') + numField('toSecs', 'Duración del timeout (seg)') + '</div>';
+
   h += '<label class="switch">Partido mixto<input type="checkbox" data-cfg="mixed"' + (c.mixed ? ' checked' : '') + '></label>';
   if (c.mixed) {
     h += '<div class="field"><label class="lbl" for="f_ratio">Proporción del primer punto</label><select id="f_ratio" data-cfg="startRatio">' +
@@ -46,9 +57,10 @@ export function viewSettings() {
   // control del partido
   h += '<h2 class="h2 disp">Control del partido</h2>';
   if (!store.game) {
-    h += '<span class="lbl">¿Quién recibe el primer pull?</span><div class="grid2 team-toggle">' +
-      '<button class="btn us" aria-pressed="' + (ui.firstOffense === 'us') + '" data-a="firstOff" data-v="us">' + esc(c.club) + '</button>' +
-      '<button class="btn th" aria-pressed="' + (ui.firstOffense === 'them') + '" data-a="firstOff" data-v="them">' + esc(c.rival) + '</button></div>';
+    h += '<span class="lbl">¿Quién saca el primer pull?</span><div class="grid2 team-toggle">' +
+      '<button class="btn us" aria-pressed="' + (c.firstPull === 'us') + '" data-a="firstPull" data-v="us">' + esc(c.club) + '</button>' +
+      '<button class="btn th" aria-pressed="' + (c.firstPull === 'them') + '" data-a="firstPull" data-v="them">' + esc(c.rival) + '</button></div>';
+    h += '<p class="muted" style="margin:0">Después, saca el pull el equipo que anotó el punto anterior.</p>';
     h += '<button class="btn big fill disp full" data-a="startGame"' + (store.roster.length ? '' : ' disabled') + '>Empezar partido</button>';
     if (!store.roster.length) h += '<p class="muted" style="margin:0">Agrega jugadores para empezar.</p>';
   } else {

@@ -93,6 +93,109 @@ tr:last-child td{border-bottom:none}
 .sheet{background:var(--bg);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow:auto}
 .sheet textarea{width:100%;min-height:200px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:20}
+.btn.sm{min-height:36px;font-size:14px;padding:0 10px}
+.btn small{font-size:12px;font-weight:500;opacity:.85}
+
+/* ---------- Pestaña Partido: pantalla fija, sin desplazamiento ---------- */
+#app.full{
+  height:100vh;
+  height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;padding-bottom:0;overflow:hidden
+}
+#app.full .tabs{position:static;flex:none}
+#app.full .tab{min-height:48px}
+#app.full .sb{flex:none;padding:10px 16px 8px;gap:6px}
+#app.full .sc{font-size:44px}
+#app.full .clock{min-height:0}
+/* Zona de contenido: ocupa todo el espacio libre entre el marcador y las pestañas */
+.scr{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px 14px 12px;overflow-y:auto}
+.q{font-size:22px;line-height:1.1;margin:0}
+
+/* Botones de jugador: la grilla se estira para llenar el espacio disponible */
+.pgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(var(--cols,2),minmax(0,1fr));grid-auto-rows:minmax(40px,1fr);gap:6px;overflow-y:auto}
+.pb{position:relative;min-height:40px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:4px 10px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;text-align:left;overflow:hidden;font-weight:600}
+.pb .num{font-size:22px;line-height:1}
+.pb .nom{font-size:13px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pb .meta{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap}
+.pb .g{position:absolute;top:4px;right:7px;font-size:11px;font-weight:700;color:var(--muted)}
+.pb.rep{border-style:dashed}
+.pb[aria-pressed="true"]{border:3px solid var(--us);background:var(--us-soft);padding:2px 8px}
+.pb[aria-pressed="true"]:disabled{opacity:1;cursor:default}
+
+.mini{display:flex;gap:6px;flex:none}
+.mini .btn{flex:1;min-height:42px;font-size:14px}
+.cuenta{font-size:14px;color:var(--muted);flex:none}
+.cuenta b{color:var(--ink)}
+.cuenta b.warn{color:var(--them)}
+.aviso{flex:none;background:var(--them-soft);border:1px solid var(--them);border-radius:10px;padding:6px 10px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;justify-content:space-between;min-height:40px}
+.aviso.info{background:var(--us-soft);border-color:var(--us)}
+
+/* Línea: ataque/defensa y proporción */
+.lin-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
+.lin-top.uno{grid-template-columns:1fr}
+.modo{border-radius:12px;padding:8px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:2px solid transparent;text-align:left}
+.modo .disp{font-size:28px;line-height:1}
+.modo small{font-size:12px;font-weight:600;opacity:.9}
+.modo.at{background:var(--us);color:var(--on-us)}
+.modo.df{background:var(--them);color:var(--on-them)}
+.modo.ratio{background:var(--surface);border-color:var(--line);color:var(--ink)}
+
+/* Franja que dice en qué momento del juego estamos */
+.paso-h{flex:none;display:flex;align-items:baseline;gap:10px;padding:6px 12px;border-radius:10px;background:var(--us);color:var(--on-us);font-size:14px;font-weight:600;min-width:0}
+.paso-h.th{background:var(--them);color:var(--on-them)}
+.paso-h .disp{font-size:22px;flex:none}
+.paso-h span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Pull */
+.hang-big{flex:1;min-height:120px;border:none;border-radius:20px;background:var(--ink);color:var(--bg);font-size:32px;line-height:1.1;touch-action:manipulation}
+.hang-ov{position:fixed;inset:0;z-index:30;background:var(--them);color:var(--on-them);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:24px;touch-action:manipulation;user-select:none;-webkit-user-select:none;cursor:pointer}
+.hang-ov .hang-v{font-size:96px;line-height:1}
+.dfgrid{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dfgrid .btn{height:100%;min-height:80px;font-size:32px}
+
+/* Juego con el disco */
+.acc{flex:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.acc .gol{grid-column:span 3;min-height:54px;font-size:28px}
+.chain1{flex:none;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chain1 .x{color:var(--them);font-weight:700}
+
+/* Timeout y final */
+.to-scr{align-items:center}
+.to-centro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.to-v{font-size:112px;line-height:1}
+.to-v.cero{color:var(--danger)}
+.to-pick .btn{min-height:72px;line-height:1.2}
+
+/* Llamado en 4 pasos */
+.call{gap:8px}
+.call .grid2,.call .grid3{gap:6px}
+.call .btn.big{min-height:52px}
+.call-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex:none}
+.call-h .h2{margin:0}
+.paso{flex:none;border-left:4px solid var(--line);padding:2px 0 2px 10px;display:flex;flex-direction:column;gap:6px}
+.paso.ok{border-left-color:var(--us)}
+.paso-t{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.paso-t .n{width:22px;height:22px;border-radius:50%;background:var(--line);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex:none}
+.paso.ok .paso-t .n{background:var(--us);color:var(--on-us)}
+.team-toggle.sm .btn{min-height:40px;font-size:17px}
+.chip.sq{border-radius:8px;min-height:36px;padding:0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.inp-sm{width:80px;min-height:38px;border-radius:8px;border:1px solid var(--line);background:var(--bg);padding:4px 8px}
+.res{min-height:42px;border-radius:8px;border:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:4px 10px;text-align:left;font-weight:600}
+.res small{font-size:11px;color:var(--muted);font-weight:500}
+.res[aria-pressed="true"]{border:3px solid var(--us);background:var(--us-soft);padding:2px 8px}
+
+/* Pantallas bajas (teléfonos chicos): todo un poco más compacto */
+@media (max-height:640px){
+  #app.full .sc{font-size:36px}
+  #app.full .sb{padding:6px 14px 6px;gap:4px}
+  .q{font-size:19px}
+  .modo .disp{font-size:22px}
+  .acc .gol{min-height:46px}
+  .btn.big{min-height:50px;font-size:20px}
+  .to-v{font-size:88px}
+}
+
 @media (prefers-reduced-motion: no-preference){
   .flash{animation:fl .35s ease-out}
   @keyframes fl{from{background:var(--us-soft)}to{background:var(--surface)}}
