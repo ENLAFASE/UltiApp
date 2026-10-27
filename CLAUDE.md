@@ -42,7 +42,7 @@ Registro básico del partido en la cancha:
 - **Datos personales — Ley 21.719 (Chile):** pedir consentimiento informado, publicar una política de privacidad, permitir borrar la cuenta y los datos. Recoger solo los datos necesarios. Las valoraciones de jugadores son datos sensibles a nivel de club: privadas por defecto.
 - **Pruebas locales:** con Python (`python -m http.server`). Ver la sección "Cómo probar".
 
-## Estructura de carpetas (propuesta, Fase 1)
+## Estructura de carpetas (actual, Fase 2)
 
 ```
 UltiApp/
@@ -50,55 +50,65 @@ UltiApp/
 ├── README.md                 # descripción corta para GitHub
 ├── .gitignore
 ├── prototipo/
-│   └── ultimate-estadistico.html   # original, solo referencia
+│   └── ultimate-estadistico.html   # original, solo referencia (no editar)
 ├── index.html                # página principal de la app
-├── privacidad.html           # política de privacidad (Ley 21.719)
+├── privacidad.html           # política de privacidad (borrador, Ley 21.719)
 ├── manifest.webmanifest      # nombre, íconos y colores para instalar la app
 ├── sw.js                     # service worker (debe estar en la raíz)
 ├── css/
-│   ├── base.css              # colores, tipografía, variables
-│   └── componentes.css       # botones, tarjetas, marcador
-├── icons/                    # icon-192.png, icon-512.png, icon-maskable-512.png
+│   ├── base.css              # colores (claro/oscuro), tipografía
+│   └── componentes.css       # botones, tarjetas, marcador, pestañas
+├── icons/                    # íconos PNG (los genera herramientas/generar_iconos.py)
+├── herramientas/
+│   └── generar_iconos.py     # crea los íconos solo con Python
 └── js/
-    ├── app.js                # arranque: registra el service worker y abre la vista
-    ├── router.js             # cambia entre pantallas (#/partido, #/coach, ...)
-    ├── almacen.js            # guardar/leer en IndexedDB
+    ├── app.js                # arranque: conecta botones, dibuja, registra el service worker
+    ├── almacen.js            # datos guardados: cfg, plantel, partido (localStorage 'ufs-v1')
+    ├── ui.js                 # estado temporal de la pantalla (no se guarda)
     ├── modelos/
-    │   ├── partido.js        # equipos, configuración (caps, ABBA, timeouts)
-    │   ├── jugador.js
-    │   └── eventos.js        # tipos de evento: pull, gol, llamado, timeout...
+    │   ├── partido.js        # derive() (eventos → marcador y estadísticas), reloj, caps, ABBA
+    │   ├── jugador.js        # buscar y mostrar jugadores
+    │   └── eventos.js        # tipos de llamado, resoluciones, describe(evento)
     ├── planillero/
-    │   ├── vista.js          # pantalla de registro en cancha
-    │   ├── reloj.js
-    │   ├── marcador.js       # puntaje, caps, timeouts
-    │   ├── abba.js
+    │   ├── render.js         # dibuja la pestaña activa, ventanas y avisos
+    │   ├── controles.js      # qué hace cada botón (data-a="...")
+    │   ├── acciones.js       # agregar / deshacer eventos
+    │   ├── reloj.js          # reloj del partido y pantalla encendida
+    │   ├── marcador.js       # encabezado con puntaje, reloj, cap y timeouts
+    │   ├── juego.js          # pestaña Partido (elige la pantalla según la fase)
+    │   ├── linea.js          # elegir línea, ABBA y línea sugerida
     │   ├── pull.js
-    │   └── llamados.js
-    ├── coach/                # Fase posterior
-    │   ├── estadisticas.js
-    │   ├── valoraciones.js
-    │   └── recomendador.js
-    ├── jugador/              # Fase posterior
-    │   ├── carta.js
-    │   ├── logros.js
-    │   └── kudos.js
+    │   ├── llamados.js
+    │   ├── resumen.js        # pestaña Resumen
+    │   └── ajustes.js        # pestaña Ajustes y plantel
     └── util/
-        ├── formato.js        # fechas y números en formato chileno
-        └── exportar.js       # exportar/importar partidos (JSON/CSV)
+        ├── formato.js        # esc(), fmt(), nombres de archivo
+        └── exportar.js       # CSV de estadísticas y eventos
 ```
 
-Principio de datos: un partido es una **lista ordenada de eventos** (pull, gol, llamado, timeout...). El marcador y las estadísticas se calculan a partir de esa lista. Así es fácil deshacer, revisar un partido y sincronizar después con Supabase.
+Más adelante se agregarán `js/coach/` (estadísticas, valoraciones, recomendador) y `js/jugador/` (carta, logros, kudos).
+
+Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
+
+Principio de datos: un partido es una **lista ordenada de eventos** (line, pull, pickup, pass, goal, themGoal, throwaway, drop, stall, block, themTurn, call, timeout, end). El marcador y las estadísticas se calculan con `derive()` a partir de esa lista. Así es fácil deshacer, revisar un partido y sincronizar después con Supabase. Los nombres internos de eventos y campos siguen en inglés como en el prototipo, para no romper datos ya guardados.
+
+Pendiente: pasar de localStorage a IndexedDB cuando se guarden varios partidos (historial).
+
+## Al agregar o renombrar archivos
+
+Agregar el archivo nuevo a la lista `ARCHIVOS` de `sw.js` y subir `VERSION`. Si no, la app no lo tendrá sin conexión.
 
 ## Cómo probar
 
 - En el PC, desde la carpeta del proyecto: `python -m http.server 8000 --bind 0.0.0.0` y abrir `http://localhost:8000`. No abrir `index.html` con doble clic: los módulos JS y el service worker no funcionan con `file://`.
 - En el teléfono (misma wifi): `http://<IP-del-PC>:8000` (la IP sale con `ipconfig`, línea "Dirección IPv4"). Por ser `http` y no `https`, el teléfono **no** activa el service worker ni deja instalar la app; sirve para ver la interfaz. Para probar instalación y modo sin señal, usar la versión publicada en GitHub Pages (https).
-- Al cambiar `sw.js` o los archivos que guarda en caché, subir el número de versión del caché para que los teléfonos reciban la actualización.
+- En `localhost` el service worker trae siempre la versión nueva de internet (para ver cambios al recargar). En la versión publicada usa primero la copia guardada: al cambiar cualquier archivo, subir `VERSION` en `sw.js` para que los teléfonos reciban la actualización.
+- El navegador integrado de Claude no permite service workers; para revisar el modo sin conexión usar Chrome o Edge (F12 → Application → Service workers).
 
 ## Fases
 
-1. **Fase 1 (actual):** planificación, CLAUDE.md, estructura, repositorio git.
-2. Migrar el prototipo a la estructura PWA (Planillero completo, sin conexión).
+1. Planificación, CLAUDE.md, estructura, repositorio git. ✅
+2. **(actual)** Migrar el prototipo a la estructura PWA (Planillero completo, sin conexión). Migración hecha; falta probar instalación y modo sin señal en teléfono.
 3. Publicar en GitHub Pages y probar en partidos reales.
 4. Supabase: cuentas, roles, sincronización, consentimiento y borrado de cuenta.
 5. Modalidad Coach.

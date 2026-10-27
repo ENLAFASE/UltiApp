@@ -1,0 +1,41 @@
+/* Colores, tipografía y reglas generales de la página.
+   Los colores se definen una vez aquí y el resto de la app los usa por nombre. */
+:root{
+  --bg:#FFFFFF; --surface:#F2F4F7; --ink:#0B0F17; --muted:#4B5563; --line:#C5CAD3;
+  --us:#1D4ED8; --on-us:#FFFFFF; --us-soft:#EFF4FF;
+  --them:#B45309; --on-them:#FFFFFF; --them-soft:#FFF4E5;
+  --head:#0B0F17; --head-ink:#FFFFFF; --head-muted:#D1D5DB;
+  --danger:#B91C1C;
+  color-scheme: light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+/* Modo oscuro: automático según el teléfono */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1116; --surface:#1A1F27; --ink:#F3F4F6; --muted:#A7AFBC; --line:#353C48;
+    --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
+    --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
+    --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1116; --surface:#1A1F27; --ink:#F3F4F6; --muted:#A7AFBC; --line:#353C48;
+  --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
+  --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
+  --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--us);outline-offset:2px}
+.disp{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;letter-spacing:.02em}
+#app{max-width:520px;margin:0 auto;min-height:100%;padding-bottom:84px}
+a{color:var(--us)}
