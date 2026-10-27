@@ -4,7 +4,6 @@
 import { cfg } from '../almacen.js';
 import { ui } from '../ui.js';
 import { KINDS, RES_SHORT } from '../modelos/eventos.js';
-import { short } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
 
 // Explicación corta bajo cada resolución.
@@ -24,18 +23,10 @@ export function viewCall(s) {
   let h = '<div class="scr call">';
   h += '<div class="call-h"><h2 class="h2 disp">Llamado · punto ' + s.point + '</h2><button class="btn sm" data-a="cancelCall">Cancelar</button></div>';
 
-  // 1. Quién llama
-  let quien = '<div class="grid2 team-toggle sm">' +
+  // 1. Qué equipo llama (es lo que cuenta en las estadísticas)
+  h += paso(1, '¿Qué equipo llama?', true, '<div class="grid2 team-toggle">' +
     '<button class="btn disp us" aria-pressed="' + (k.team === 'us') + '" data-a="callTeam" data-v="us">' + esc(c.club) + '</button>' +
-    '<button class="btn disp th" aria-pressed="' + (k.team === 'them') + '" data-a="callTeam" data-v="them">' + esc(c.rival) + '</button></div>';
-  if (k.team === 'us') {
-    quien += '<div class="chips">';
-    s.line.forEach(function (id) { quien += '<button class="chip sq" aria-pressed="' + (k.player === id) + '" data-a="callPlayer" data-id="' + id + '">' + esc(short(id)) + '</button>'; });
-    quien += '<span class="muted">(opcional)</span></div>';
-  } else {
-    quien += '<div class="row"><label for="rivnum" class="muted">N.° del rival (opcional)</label><input id="rivnum" class="inp-sm" inputmode="numeric" data-in="callRival" value="' + esc(k.player || '') + '"></div>';
-  }
-  h += paso(1, '¿Quién llama?', true, quien);
+    '<button class="btn disp th" aria-pressed="' + (k.team === 'them') + '" data-a="callTeam" data-v="them">' + esc(c.rival) + '</button></div>');
 
   // 2. Tipo
   let tipos = '<div class="grid3">';

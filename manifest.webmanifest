@@ -1,7 +1,7 @@
 {
-  "name": "UltiApp · Planillero de Ultimate",
+  "name": "UltiApp · Coach de Ultimate",
   "short_name": "UltiApp",
-  "description": "Planilla de partidos de Ultimate Frisbee que funciona sin conexión.",
+  "description": "Registro de partidos y apoyo al coach de Ultimate Frisbee, sin conexión.",
   "lang": "es-CL",
   "start_url": "./",
   "scope": "./",

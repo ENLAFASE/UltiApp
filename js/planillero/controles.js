@@ -60,7 +60,8 @@ function alTocar(ev) {
       break;
     }
     case 'suggest': suggestLine(s); break;
-    case 'clearSel': ui.sel = []; break;
+    case 'openWhy': ui.modal = { kind: 'why', title: '¿Por qué esta línea?' }; break;
+    case 'clearSel': ui.sel = []; ui.sug = null; break;
     case 'swapRatio': ui.ratioSwap = !ui.ratioSwap; break;
     case 'confirmLine': {
       if (!ui.sel.length) return;
@@ -98,7 +99,7 @@ function alTocar(ev) {
       return;
     case 'goal': ui.pick = { act: 'goal', title: '¿Quién atrapó el gol?', ids: s.line.filter(function (x) { return x !== s.holder; }) }; break;
     case 'throwaway': case 'stall': add({ type: a, player: s.holder }); return;
-    case 'drop': ui.pick = { act: 'drop', title: '¿Quién soltó el disco?', ids: s.line.filter(function (x) { return x !== s.holder; }) }; break;
+    case 'drop': ui.pick = { act: 'drop', title: '¿A quién se le cayó el disco?', ids: s.line.filter(function (x) { return x !== s.holder; }) }; break;
     case 'block': ui.pick = { act: 'block', title: '¿Quién hizo el block?', ids: s.line }; break;
     case 'themTurn': add({ type: 'themTurn' }); return;
     case 'themGoal': add({ type: 'themGoal' }); return;
@@ -123,17 +124,16 @@ function alTocar(ev) {
     case 'toResume': s.last.fin = Date.now(); save(); break;
 
     // llamado
-    case 'openCall': ui.call = { team: 'us', player: null, kind: null, res: null, poss: s.possession }; ui.view = 'call'; break;
+    case 'openCall': ui.call = { team: 'us', kind: null, res: null, poss: s.possession }; ui.view = 'call'; break;
     case 'cancelCall': ui.view = null; break;
-    case 'callTeam': ui.call.team = v; ui.call.player = null; break;
-    case 'callPlayer': ui.call.player = ui.call.player === id ? null : id; break;
+    case 'callTeam': ui.call.team = v; break;
     case 'callKind': ui.call.kind = v; break;
     case 'callRes': ui.call.res = v; break;
     case 'callPoss': ui.call.poss = v; break;
     case 'saveCall': {
       const k = ui.call; if (!k.kind || !k.res) return;
       ui.view = null;
-      add({ type: 'call', team: k.team, player: k.player || null, kind: k.kind, res: k.res, possession: k.poss });
+      add({ type: 'call', team: k.team, kind: k.kind, res: k.res, possession: k.poss });
       toast('Llamado guardado');
       return;
     }
@@ -174,6 +174,15 @@ function alTocar(ev) {
       save(); ui.bulk = ''; toast(n + ' jugadores agregados');
       break;
     }
+    // evaluación privada de jugadores (coach)
+    case 'evOpen': ui.modal = { kind: 'eval', id: id, title: 'Evaluar jugador' }; break;
+    case 'evSet': {
+      const p = store.roster.find(function (x) { return x.id === id; }); if (!p) break;
+      p.ev = p.ev || {};
+      p.ev[b.getAttribute('data-k')] = +v;
+      save();
+      break;
+    }
     case 'delP': store.roster = store.roster.filter(function (p) { return p.id !== id; }); save(); break;
     case 'firstPull': store.cfg.firstPull = v; save(); break;
     case 'startGame':
@@ -212,7 +221,6 @@ function alEscribir(ev) {
   if (k === 'npNum') ui.newP.num = el.value;
   else if (k === 'npName') ui.newP.name = el.value;
   else if (k === 'bulk') ui.bulk = el.value;
-  else if (k === 'callRival') ui.call.player = el.value.trim();
 }
 
 export function conectarControles(app) {

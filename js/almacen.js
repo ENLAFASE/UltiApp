@@ -15,6 +15,7 @@ export const DEF_CFG = {
   softCap: 0,           // cap blando, en minutos (0 = sin cap)
   hardCap: 0,           // duración total del partido, en minutos (0 = sin límite)
   firstPull: 'us',      // quién saca el primer pull
+  lineMode: 'competencia', // criterio de sugerencia: 'competencia', 'amistoso' o 'entrenamiento'
   mixed: true, startRatio: '4M3F', abba: true
 };
 

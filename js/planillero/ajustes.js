@@ -3,6 +3,8 @@ import { store, cfg } from '../almacen.js';
 import { ui } from '../ui.js';
 import { label, porNumero } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
+import { evaluado, resumenEv } from '../coach/evaluacion.js';
+import { MODOS, modoActual } from '../coach/recomendador.js';
 
 function numField(key, lbl, hint) {
   const v = cfg()[key];
@@ -38,11 +40,26 @@ export function viewSettings() {
     h += '<label class="switch">Alternar con regla ABBA<input type="checkbox" data-cfg="abba"' + (c.abba ? ' checked' : '') + '></label>';
   }
 
+  // sugerencia de línea (coach)
+  const modo = modoActual();
+  h += '<h2 class="h2 disp">Sugerencia de línea</h2>';
+  h += '<div class="field"><label class="lbl" for="f_lineMode">Criterio</label><select id="f_lineMode" data-cfg="lineMode">' +
+    Object.keys(MODOS).map(function (k) { return '<option value="' + k + '"' + (k === modo ? ' selected' : '') + '>' + MODOS[k].nombre + '</option>'; }).join('') +
+    '</select><span class="muted">' + MODOS[modo].ayuda + '</span></div>';
+
   // plantel
-  h += '<h2 class="h2 disp">Plantel (' + store.roster.length + ')</h2><div class="stack" style="gap:6px">';
+  const sinEv = store.roster.filter(function (p) { return !evaluado(p); }).length;
+  h += '<h2 class="h2 disp">Plantel (' + store.roster.length + ')</h2>';
+  if (store.roster.length) {
+    h += '<p class="muted" style="margin:0">La evaluación (1 a 5) es privada y la usa el recomendador. ' +
+      (sinEv ? sinEv + ' sin evaluar: cuentan como nivel 3.' : 'Todos evaluados.') + '</p>';
+  }
+  h += '<div class="stack" style="gap:6px">';
   porNumero(store.roster).forEach(function (p) {
-    h += '<div class="item"><span>' + esc(label(p.id)) + (c.mixed ? ' <span class="muted">' + (p.g === 'F' ? 'Fem.' : 'Masc.') + '</span>' : '') + '</span>' +
-      '<button class="btn danger" style="min-height:44px" data-a="delP" data-id="' + p.id + '" aria-label="Quitar ' + esc(label(p.id)) + '">Quitar</button></div>';
+    h += '<div class="item"><span class="grow"><b>' + esc(label(p.id)) + '</b>' + (c.mixed ? ' <span class="muted">' + (p.g === 'F' ? 'Fem.' : 'Masc.') + '</span>' : '') +
+      '<br><span class="muted">' + resumenEv(p) + '</span></span>' +
+      '<span class="row" style="gap:6px"><button class="btn sm fill" data-a="evOpen" data-id="' + p.id + '">Evaluar</button>' +
+      '<button class="btn sm danger" data-a="delP" data-id="' + p.id + '" aria-label="Quitar ' + esc(label(p.id)) + '">Quitar</button></span></div>';
   });
   h += '</div>';
   const np = ui.newP;

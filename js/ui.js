@@ -8,6 +8,7 @@ export const ui = {
   sel: [],             // jugadores marcados para la línea
   selFor: null,
   ratioSwap: false,
+  sug: null,           // última sugerencia de línea y su explicación
   pull: null,          // pasos del pull en curso
   pick: null,          // elegir jugador (gol, drop, block)
   call: null,

@@ -130,6 +130,20 @@ tr:last-child td{border-bottom:none}
 .aviso{flex:none;background:var(--them-soft);border:1px solid var(--them);border-radius:10px;padding:6px 10px;font-size:14px;font-weight:600;display:flex;gap:8px;align-items:center;justify-content:space-between;min-height:40px}
 .aviso.info{background:var(--us-soft);border-color:var(--us)}
 
+/* Sugerencia de línea y su explicación */
+.btn.sug{display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+.btn.sug small{font-family:Inter,system-ui,sans-serif;font-size:12px;font-weight:600;letter-spacing:0;color:var(--muted)}
+.aviso.why{width:100%;cursor:pointer;text-align:left;color:var(--ink)}
+.aviso.why span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.aviso.why b{color:var(--us);flex:none}
+.item .grow{flex:1;min-width:0}
+
+/* Evaluación de jugadores */
+.ev-fila{display:flex;flex-direction:column;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}
+.ev-fila > div:first-child{display:flex;flex-direction:column}
+.ev-notas{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.ev-notas .chip{font-size:18px}
+
 /* Línea: ataque/defensa y proporción */
 .lin-top{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
 .lin-top.uno{grid-template-columns:1fr}

@@ -7,6 +7,8 @@ import { esc } from '../util/formato.js';
 import { viewGame } from './juego.js';
 import { viewSummary } from './resumen.js';
 import { viewSettings } from './ajustes.js';
+import { modalPorQue } from './linea.js';
+import { modalEvaluar } from '../coach/evaluacion.js';
 
 const app = document.getElementById('app');
 
@@ -54,6 +56,10 @@ function modalHTML() {
     h += '<h2 class="h2 disp">¿Quién pide timeout?</h2><div class="grid2 team-toggle to-pick">' + boton('us', 'us', c.club) + boton('them', 'th', c.rival) + '</div>' +
       '<p class="muted" style="margin:0">Se activará una cuenta regresiva de ' + (c.toSecs || 60) + ' segundos.</p>' +
       '<button class="btn full" data-a="closeModal">Cancelar</button>';
+  } else if (m.kind === 'why') {
+    h += modalPorQue();
+  } else if (m.kind === 'eval') {
+    h += modalEvaluar(m.id);
   } else if (m.kind === 'confirm') {
     h += '<h2 class="h2 disp">' + esc(m.title) + '</h2><p style="margin:0">' + esc(m.text) + '</p><div class="grid2"><button class="btn" data-a="closeModal">' + esc(m.cancel || 'Cancelar') + '</button><button class="btn ' + (m.okClass || 'danger') + '" data-a="' + m.action + '">' + esc(m.ok) + '</button></div>';
   } else if (m.kind === 'text') {

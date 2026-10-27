@@ -10,20 +10,20 @@ El dueño del proyecto no es programador profesional. Explicar cada paso de form
 
 ## Visión: tres modalidades
 
-### 1. Planillero (libre, sin cuenta)
-Registro básico del partido en la cancha:
-- Reloj de partido.
-- Caps (límite de tiempo / puntos).
-- Timeouts por equipo.
-- Proporción mixta ABBA (qué proporción de género toca en cada punto).
-- Pull: equipo, jugador, tiempo de vuelo (opcional), dentro/fuera.
-- Llamados: quién llama, tipo, resolución y con quién queda la posesión.
-- Goles, asistencias y defensas.
+> **Importante (aclarado por el usuario el 2026-10-27):** la app que estamos construyendo ahora **es la modalidad Coach**: registro detallado (líneas, pull cronometrado, pases, llamados), evaluación de jugadores y recomendador de líneas. El **Planillero** se hará después como una versión **aún más simple**, que solo registre estadísticas y controle los tiempos de juego.
 
-### 2. Coach (restringido; cuentas aprobadas por el administrador)
-- Estadísticas detalladas.
-- Valoración **privada** de jugadores: 1 a 5 en manejo, corte, defensa y físico; posición manejador/cortador.
-- Recomendador de líneas que **explica** por qué sugiere cada línea.
+### 1. Planillero (libre, sin cuenta) — pendiente, versión simplificada
+- Solo registrar estadísticas básicas del partido (marcador, goles, asistencias, defensas) y controlar los tiempos (reloj, caps, medio tiempo, timeouts).
+- Sin evaluación de jugadores ni recomendador.
+
+### 2. Coach (restringido; cuentas aprobadas por el administrador) — **en construcción**
+- Todo el registro del partido: línea con proporción mixta ABBA, pull (quién saca, tiempo de vuelo, dentro/fuera), recepción y pases, goles, asistencias, turnovers, defensas, llamados (equipo que llama, tipo, resolución, posesión), timeouts con cuenta regresiva.
+- Evaluación **privada** de jugadores, 1 a 5 en: manejo, corte de avance, corte de gol y defensa (`js/coach/evaluacion.js`).
+- Recomendador de líneas que **explica** por qué sugiere cada jugador (`js/coach/recomendador.js`), con tres criterios:
+  - **Competencia:** el mayor nivel posible; según el marcador: empatados o perdiendo → máximo nivel; ganando por poco → nivel alto con algo de descanso; ganando por 3 o más → rotación con minutos para el nivel más bajo.
+  - **Amistoso:** rota, pero asegura una columna vertical de 3: un manejo, un corte de avance y un corte de gol principales (nota 4 o más).
+  - **Entrenamiento:** rotación pareja (descansó el punto anterior, menos puntos jugados).
+  - Siempre 7 jugadores y respetando la proporción de géneros si es mixto. En ataque pesa más lo ofensivo; en defensa, la defensa.
 
 ### 3. Jugador (restringido; piloto solo con nuestro club, acceso con código de invitación)
 - Carta de jugador compartible.
@@ -65,6 +65,9 @@ UltiApp/
     ├── app.js                # arranque: conecta botones, dibuja, registra el service worker
     ├── almacen.js            # datos guardados: cfg, plantel, partido (localStorage 'ufs-v1')
     ├── ui.js                 # estado temporal de la pantalla (no se guarda)
+    ├── coach/
+    │   ├── evaluacion.js     # evaluación 1-5 de jugadores (privada, no se exporta)
+    │   └── recomendador.js   # sugerencia de línea: competencia / amistoso / entrenamiento
     ├── modelos/
     │   ├── partido.js        # derive() (eventos → marcador y estadísticas), reloj, caps, ABBA
     │   ├── jugador.js        # buscar y mostrar jugadores
@@ -86,7 +89,7 @@ UltiApp/
         └── exportar.js       # CSV de estadísticas y eventos
 ```
 
-Más adelante se agregarán `js/coach/` (estadísticas, valoraciones, recomendador) y `js/jugador/` (carta, logros, kudos).
+Las pantallas del partido están en `js/planillero/` por razones históricas, pero hoy forman la modalidad Coach. Cuando se haga el Planillero simplificado, conviene reorganizar las carpetas. Más adelante se agregará `js/jugador/` (carta, logros, kudos).
 
 ### Pestaña Partido: reglas de diseño (pedidas por el usuario)
 
@@ -96,7 +99,7 @@ Más adelante se agregarán `js/coach/` (estadísticas, valoraciones, recomendad
 - **Pull:** quién saca se deduce (primer pull en Ajustes; luego saca quien anotó; en la 2.ª mitad recibe quien sacó primero). Mi equipo: ¿quién saca? → cronometrar (tocar al soltar, luego tocar cualquier parte) → dentro/fuera. Rival: no se cronometra. Al elegir dentro/fuera pasa solo al juego.
 - **Reloj:** parte al soltar el primer pull (`game.start`), no se pausa, se congela al terminar (`game.finishedAt`).
 - **Timeout:** cuenta regresiva de `cfg.toSecs` segundos sin detener el reloj; no se permiten más que `cfg.timeouts` por equipo.
-- **Llamado:** pantalla completa con 4 pasos numerados (quién llama, tipo, resolución, posesión).
+- **Llamado:** pantalla completa con 4 pasos numerados (qué equipo llama, tipo, resolución, posesión). No se registra el jugador que llama.
 
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
 

@@ -4,6 +4,7 @@ import { ui } from '../ui.js';
 import { ratioFor, reqCounts, ratioText, tiempoCumplido } from '../modelos/partido.js';
 import { P, porNumero } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
+import { recomendarLinea, MODOS, modoActual } from '../coach/recomendador.js';
 
 export const EN_CANCHA = 7;
 
@@ -20,27 +21,13 @@ function contarGeneros(ids) {
   return { M: M, F: F };
 }
 
-// Completa la línea hasta 7: primero respeta la proporción de géneros y, si
-// faltan jugadores de un género, completa con quien haya. Da prioridad a quien
-// no jugó el punto anterior y a quien lleva menos puntos jugados.
+// Completa la línea hasta 7 con el recomendador del coach y guarda la
+// explicación para mostrarla ("¿Por qué?").
 export function suggestLine(s) {
-  const r = currentRatio(s), req = r ? reqCounts(r) : null, sel = ui.sel.slice();
-  const cand = store.roster.filter(function (p) { return sel.indexOf(p.id) < 0; }).sort(function (a, b) {
-    const la = s.lastLine.indexOf(a.id) >= 0 ? 1 : 0, lb = s.lastLine.indexOf(b.id) >= 0 ? 1 : 0;
-    if (la !== lb) return la - lb;
-    const pa = (s.stats[a.id] || {}).pts || 0, pb = (s.stats[b.id] || {}).pts || 0;
-    if (pa !== pb) return pa - pb;
-    return (+a.num || 0) - (+b.num || 0);
-  });
-  if (req) {
-    const tengo = contarGeneros(sel);
-    cand.forEach(function (p) {
-      const gd = p.g === 'F' ? 'F' : 'M';
-      if (sel.length < EN_CANCHA && tengo[gd] < req[gd]) { sel.push(p.id); tengo[gd]++; }
-    });
-  }
-  cand.forEach(function (p) { if (sel.length < EN_CANCHA && sel.indexOf(p.id) < 0) sel.push(p.id); });
-  ui.sel = sel;
+  const r = currentRatio(s), req = r ? reqCounts(r) : null;
+  const rec = recomendarLinea(s, req, ui.sel);
+  ui.sel = rec.ids;
+  ui.sug = Object.assign({ point: s.point }, rec);
 }
 
 // Avisos antes de confirmar: menos de 7 o proporción distinta a la que toca.
@@ -57,6 +44,19 @@ export function revisarLinea(s) {
   return avisos;
 }
 
+// Ventana "¿Por qué esta línea?": el criterio y el motivo de cada jugador.
+export function modalPorQue() {
+  const k = ui.sug; if (!k) return '';
+  let h = '<h2 class="h2 disp">¿Por qué esta línea?</h2><p style="margin:0"><b>' + esc(k.resumen) + '</b></p><div class="stack" style="gap:6px">';
+  k.ids.forEach(function (id) {
+    const p = P(id);
+    h += '<div class="item"><span><b>#' + esc(p ? p.num : '?') + ' ' + esc(p ? p.name : '') + '</b><br><span class="muted">' + esc(k.motivos[id] || '') + '</span></span></div>';
+  });
+  h += '</div>';
+  if (k.sinEvaluar) h += '<p class="muted" style="margin:0">' + k.sinEvaluar + ' jugador(es) sin evaluar cuentan como nivel 3. Evalúalos en Ajustes → Plantel.</p>';
+  return h + '<button class="btn full" data-a="closeModal">Cerrar</button>';
+}
+
 function ratioCorto(r) { return r === '4M3F' ? '4M · 3F' : '3M · 4F'; }
 
 // Columnas según el tamaño del plantel, para que todos quepan sin desplazar.
@@ -64,7 +64,7 @@ function columnas(n) { return n <= 8 ? 2 : n <= 15 ? 3 : n <= 24 ? 4 : 5; }
 
 export function viewLine(s) {
   const c = cfg();
-  if (ui.selFor !== s.point) { ui.selFor = s.point; ui.sel = []; ui.ratioSwap = false; }
+  if (ui.selFor !== s.point) { ui.selFor = s.point; ui.sel = []; ui.ratioSwap = false; ui.sug = null; }
   const r = currentRatio(s), req = r ? reqCounts(r) : null, t = contarGeneros(ui.sel);
   const roster = porNumero(store.roster), ataque = s.offense === 'us', n = ui.sel.length;
   let h = '<div class="scr">';
@@ -80,6 +80,10 @@ export function viewLine(s) {
 
   h += '<div class="cuenta">Línea del punto ' + s.point + ': <b class="' + (n === EN_CANCHA ? 'ok' : 'warn') + '">' + n + ' / 7</b>' +
     (req ? ' · Masc. <b class="' + (t.M === req.M ? 'ok' : 'warn') + '">' + t.M + ' / ' + req.M + '</b> · Fem. <b class="' + (t.F === req.F ? 'ok' : 'warn') + '">' + t.F + ' / ' + req.F + '</b>' : '') + '</div>';
+
+  if (ui.sug) {
+    h += '<button class="aviso info why" data-a="openWhy"><span>' + esc(ui.sug.resumen) + '</span><b>¿Por qué?</b></button>';
+  }
 
   if (!roster.length) {
     h += '<div class="card stack"><span>No hay jugadores en el plantel.</span><button class="btn fill" data-a="tab" data-v="settings">Agregar jugadores</button></div>';
@@ -98,7 +102,7 @@ export function viewLine(s) {
   h += '<div class="mini"><button class="btn" data-a="undo"' + (store.game.events.length ? '' : ' disabled') + '>Deshacer</button>' +
     '<button class="btn" data-a="clearSel"' + (n ? '' : ' disabled') + '>Limpiar</button>' +
     '<button class="btn" data-a="openTO">Timeout</button></div>';
-  h += '<div class="grid2"><button class="btn big soft disp" data-a="suggest"' + (n >= EN_CANCHA ? ' disabled' : '') + '>Sugerir</button>' +
+  h += '<div class="grid2"><button class="btn big soft disp sug" data-a="suggest"' + (n >= EN_CANCHA ? ' disabled' : '') + '>Sugerir<small>' + MODOS[modoActual()].nombre + '</small></button>' +
     '<button class="btn big fill disp" data-a="confirmLine"' + (n ? '' : ' disabled') + '>Confirmar línea</button></div>';
   h += '</div>';
   return h;
