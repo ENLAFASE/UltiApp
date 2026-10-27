@@ -1,0 +1,20 @@
+# Archivos del sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+
+# Claves y configuración local (nunca subir a GitHub)
+.env
+*.local.*
+.claude/settings.local.json
+
+# Respaldos y exportaciones de partidos con datos personales
+respaldos/
+*.backup.json
