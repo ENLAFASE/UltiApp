@@ -7,10 +7,11 @@ import { esc, fmt } from '../util/formato.js';
 import { header } from './marcador.js';
 import { escudo } from './encabezado.js';
 
-export function viewSummary() {
+// extra = contenido opcional bajo el marcador (el selector del Dashboard).
+export function viewSummary(extra) {
   if (!store.game) return '<div class="empty">' + escudo('crest-xl') + '<h2 class="h2 disp">Sin datos todavía</h2><p class="muted" style="margin:0">El resumen aparece cuando empieza un partido.</p></div>';
   const s = derive(), c = cfg();
-  let h = header(s) + '<div class="pad stack">';
+  let h = header(s) + '<div class="pad stack">' + (extra || '');
 
   // jugadores
   h += '<h2 class="h2 disp">Jugadores</h2>';

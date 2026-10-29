@@ -5,7 +5,7 @@ import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
 import { esc } from '../util/formato.js';
 import { viewGame } from './juego.js';
-import { viewSummary } from './resumen.js';
+import { viewDashboard } from './dashboard.js';
 import { viewSettings } from './ajustes.js';
 import { viewPlantel, modalJugador } from './plantel.js';
 import { modalPorQue, modalInfoLinea } from './linea.js';
@@ -15,13 +15,17 @@ const app = document.getElementById('app');
 
 export function render() {
   const y = window.scrollY;
+  // Sin partido creado solo existen Partido (crear partido) y Plantel.
+  // Ajustes ya no es pestaña: vive dentro de Partido (ui.view = 'ajustes').
+  if (ui.tab === 'settings') { ui.tab = 'game'; if (store.game) ui.view = 'ajustes'; }
+  if (!store.game && ui.view === 'ajustes') ui.view = null;
   let body;
   if (ui.tab === 'game') body = viewGame();
-  else if (ui.tab === 'summary') body = viewSummary();
+  else if (ui.tab === 'summary') body = viewDashboard();
   else if (ui.tab === 'roster') body = viewPlantel();
   else body = viewSettings();
   // Durante el partido, la pantalla ocupa exactamente el alto del teléfono (sin desplazar).
-  const pantallaFija = ui.tab === 'game' && !!store.game;
+  const pantallaFija = ui.tab === 'game' && !!store.game && ui.view !== 'ajustes';
   app.classList.toggle('full', pantallaFija);
   const sinPestanas = pantallaFija && ui.view === 'call';
   app.innerHTML = body + (sinPestanas ? '' : tabs()) + modalHTML() + (ui.toast ? '<div class="toast" role="status">' + esc(ui.toast) + '</div>' : '');
@@ -39,15 +43,17 @@ export function toast(t) {
   }, 1800);
 }
 
-// Barra inferior con 4 pestañas (ícono + nombre), en el orden en que se usan
-// durante un partido: Partido, Resumen, Plantel, Ajustes.
+// Barra inferior (ícono + nombre): primero Plantel y después Partido.
+// Con partido creado se suman Resumen y Ajustes.
 function tabs() {
   function t(id, txt) {
     return '<button class="tab" data-a="tab" data-v="' + id + '"' + (ui.tab === id ? ' aria-current="page"' : '') + '>' +
       icono(id) + '<span>' + txt + '</span></button>';
   }
-  return '<nav class="tabs" aria-label="Secciones"><div class="tabs-in">' +
-    t('game', 'Partido') + t('summary', 'Resumen') + t('roster', 'Plantel') + t('settings', 'Ajustes') + '</div></nav>';
+  return '<nav class="tabs" aria-label="Secciones"><div class="tabs-in tres">' +
+    (store.game
+      ? t('roster', 'Plantel') + t('game', 'Partido') + t('summary', 'Dashboard')
+      : t('roster', 'Plantel') + t('game', 'Nuevo partido') + t('summary', 'Dashboard')) + '</div></nav>';
 }
 
 // Ventanas que suben desde abajo: timeout, confirmar, texto exportado.

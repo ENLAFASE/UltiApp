@@ -1,7 +1,8 @@
 // Pestaña "Ajustes": preparar el partido (lista de pasos), reglas, criterio de sugerencia
 // y empezar/terminar el partido. Las secciones avanzadas se abren y cierran (ui.abiertos).
 // (El plantel tiene su propia pestaña: plantel.js.)
-import { store, cfg } from '../almacen.js';
+import { store, cfg, EQUIPOS, ramasDe } from '../almacen.js';
+import { porNumero, letraGenero } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
 import { MODOS, modoActual } from '../criterio/recomendador.js';
 import { ZONAS, MODALIDADES, zonaDelMarcador, margenes } from '../criterio/zonas.js';
@@ -51,6 +52,53 @@ function seccion(id, titulo, resumen, contenido) {
     (abierta ? '<div class="secc-c stack">' + contenido + '</div>' : '') + '</section>';
 }
 
+// Selector del equipo del club (Mix, Open, Husarex u otro). Se usa en Partido,
+// Plantel y Ajustes, para elegir el equipo ANTES de armar el plantel.
+export function selectorEquipo() {
+  const c = cfg();
+  let h = '<div class="equipos" role="group" aria-label="Equipo">';
+  Object.keys(EQUIPOS).forEach(function (k) {
+    const e = EQUIPOS[k];
+    h += '<button class="eq" data-a="equipo" data-v="' + k + '" aria-pressed="' + (c.equipo === k) + '"' + (store.game && c.equipo !== k ? ' disabled' : '') + '>' +
+      '<b class="disp">' + esc(e.corto) + '</b><small>' + esc(e.detalle) + '</small></button>';
+  });
+  h += '</div><button class="eq-otro" data-a="equipo" data-v="otro" aria-pressed="' + (c.equipo === 'otro') + '"' + (store.game && c.equipo !== 'otro' ? ' disabled' : '') + '>' +
+    (c.equipo === 'otro' ? 'Otro equipo (nombre libre)' : 'Otro equipo…') + '</button>';
+  if (c.equipo === 'otro') {
+    h += '<div class="grid2"><div class="field"><label class="lbl" for="f_club">Nombre del equipo</label><input id="f_club" data-cfg="club" value="' + esc(c.club) + '"></div>' +
+      selectField('division', 'Categoría', DIV) + '</div>';
+  }
+  return h;
+}
+
+// Elegir quiénes juegan: los jugadores de la rama del equipo y, si hace falta, de otras ramas.
+function convocatoria(c) {
+  if (!store.roster.length) return '<button class="btn sm fill" data-a="tab" data-v="roster">Armar plantel</button>';
+  const eq = EQUIPOS[c.equipo];
+  const todos = porNumero(store.roster);
+  const deRama = eq ? todos.filter(function (p) { return ramasDe(p).indexOf(c.equipo) >= 0; }) : todos;
+  const otros = eq ? todos.filter(function (p) { return ramasDe(p).indexOf(c.equipo) < 0; }) : [];
+  function boton(p) {
+    const g = letraGenero(p);
+    return '<button class="conv-b" data-a="convSel" data-id="' + p.id + '" aria-pressed="' + !p.noConv + '">' +
+      '<b>' + esc(p.name || '#' + p.num) + '</b><small>#' + esc(p.num) + ' · <span class="g ' + g + '">' + g + '</span></small></button>';
+  }
+  let h = '';
+  if (eq) h += '<span class="lbl">' + esc(eq.nombre) + ' (' + deRama.length + ')</span>';
+  h += deRama.length ? '<div class="conv-grid">' + deRama.map(boton).join('') + '</div>' : '<span class="muted">Nadie del plantel juega en ' + esc(eq.nombre) + ' todavía.</span>';
+  const otrosConv = otros.filter(function (p) { return !p.noConv; }).length;
+  if (otros.length) {
+    h += '<button class="eq-otro" data-a="verOtros">' + (ui.verOtros ? 'Ocultar otras ramas' : 'Sumar de otras ramas (' + otros.length + ')') + (otrosConv ? ' · ' + otrosConv + ' sumados' : '') + '</button>';
+    if (ui.verOtros) h += '<div class="conv-grid">' + otros.map(boton).join('') + '</div>';
+  }
+  h += '<div class="row" style="gap:6px"><button class="btn sm" data-a="convReset">Volver a la rama</button><button class="btn sm" data-a="tab" data-v="roster">Editar plantel</button></div>';
+  return h;
+}
+
+function campoRival(c) {
+  return '<div class="field"><label class="lbl" for="f_rival">Rival</label><input id="f_rival" data-cfg="rival" value="' + esc(c.rival === 'Rival' ? '' : c.rival) + '" placeholder="Nombre del rival"></div>';
+}
+
 // Lista de pasos para dejar listo el partido.
 function preparar(c) {
   const conv = store.roster.filter(function (p) { return !p.noConv; });
@@ -61,12 +109,17 @@ function preparar(c) {
       '<span class="prep-t"><b>' + titulo + '</b><span class="muted">' + detalle + '</span></span>' + (extra || '') + '</li>';
   }
   let h = '<div class="card prep"><span class="prep-h disp">Preparar partido</span><ol class="prep-l">';
-  h += paso(rivalOk, 1, esc(c.club) + ' vs ' + (rivalOk ? esc(c.rival) : '…'),
-    rivalOk ? DIV[c.division] + ' · a ' + c.pointsToWin + ' puntos' : 'Escribe el nombre del rival abajo');
-  h += paso(conv.length >= 7, 2, conv.length + ' convocados',
-    conv.length < 7 ? 'Se necesitan al menos 7' : (sinEv ? sinEv + ' sin evaluar (cuentan como 3)' : 'Todos evaluados'),
-    '<button class="btn sm" data-a="tab" data-v="roster">Plantel</button>');
-  h += '<li class="prep-i ok"><span class="prep-n">3</span><span class="prep-t"><b>¿Quién saca el primer pull?</b>' +
+  const eq = EQUIPOS[c.equipo];
+  h += '<li class="prep-i ok"><span class="prep-n">1</span><span class="prep-t"><b>Equipo: ' + esc(c.club) + '</b>' +
+    '<span class="muted">' + (eq ? esc(eq.detalle) + (eq.detalle !== DIV[c.division] ? ' · ' + DIV[c.division].toLowerCase() : '') : DIV[c.division]) + (eq ? ' · se convoca a quienes juegan en ' + esc(eq.corto) : (c.division !== 'mixto' ? ' · el otro género queda fuera de la convocatoria' : ' · con proporción de géneros')) + '</span>' +
+    '<span class="prep-sel">' + selectorEquipo() + '</span></span></li>';
+  h += '<li class="prep-i' + (conv.length >= 7 ? ' ok' : '') + '"><span class="prep-n">' + (conv.length >= 7 ? '✓' : 2) + '</span><span class="prep-t">' +
+    '<b>¿Quiénes juegan? ' + conv.length + ' convocados</b><span class="muted">' +
+    (conv.length < 7 ? 'Se necesitan al menos 7. ' : (sinEv ? sinEv + ' sin evaluar (cuentan como 3). ' : '')) + 'Toca para sumar o sacar.</span>' +
+    '<span class="prep-sel">' + convocatoria(c) + '</span></span></li>';
+  h += '<li class="prep-i' + (rivalOk ? ' ok' : '') + '"><span class="prep-n">' + (rivalOk ? '✓' : 3) + '</span><span class="prep-t"><b>' + esc(c.club) + ' vs ' + (rivalOk ? esc(c.rival) : '…') + '</b>' +
+    '<span class="prep-sel">' + campoRival(c) + '</span></span></li>';
+  h += '<li class="prep-i ok"><span class="prep-n">4</span><span class="prep-t"><b>¿Quién saca el primer pull?</b>' +
     '<span class="grid2 team-toggle sm" style="margin-top:6px">' +
     '<button class="btn us" aria-pressed="' + (c.firstPull === 'us') + '" data-a="firstPull" data-v="us">' + esc(c.club) + '</button>' +
     '<button class="btn th" aria-pressed="' + (c.firstPull === 'them') + '" data-a="firstPull" data-v="them">' + esc(c.rival) + '</button></span>' +
@@ -76,28 +129,21 @@ function preparar(c) {
 
 const DIV = { mixto: 'Mixto', open: 'Open', femenino: 'Femenino' };
 
-export function viewSettings() {
-  const c = cfg();
-  let h = encabezado('Ajustes', store.game ? 'Partido en curso' : 'Antes del partido') + '<div class="pad stack">';
-
-  if (!store.game) h += preparar(c);
-
-  // partido (siempre visible)
-  h += '<h2 class="h2 disp">Partido</h2>';
-  h += '<div class="grid2"><div class="field"><label class="lbl" for="f_club">Mi equipo</label><input id="f_club" data-cfg="club" value="' + esc(c.club) + '"></div>' +
-    '<div class="field"><label class="lbl" for="f_rival">Rival</label><input id="f_rival" data-cfg="rival" value="' + esc(c.rival === 'Rival' ? '' : c.rival) + '" placeholder="Nombre del rival"></div></div>';
-  h += selectField('division', 'Tipo de partido', DIV,
-    c.division === 'mixto' ? 'Se aplica la proporción de géneros.' : 'Los jugadores del otro género pasan solos a no convocados (Plantel).');
-  h += '<div class="grid2">' + numField('pointsToWin', 'Puntos para ganar') +
+// Campos de reglas básicas: puntos, duración y proporción (mixto).
+function camposReglas(c) {
+  let h = '<div class="grid2">' + numField('pointsToWin', 'Puntos para ganar') +
     numField('hardCap', 'Duración total (min)', '0 = sin límite') + '</div>';
   if (c.division === 'mixto') {
     h += selectField('startRatio', 'Proporción del primer punto', { '4M3F': '4 hombres / 3 mujeres', '3M4F': '3 hombres / 4 mujeres' });
     h += '<label class="switch">Alternar con regla ABBA<input type="checkbox" data-cfg="abba"' + (c.abba ? ' checked' : '') + '></label>';
   }
-
-  // tiempos y timeouts
+  return h;
+}
+function resumenTiempos(c) {
   const medio = c.halfMode === 'time' ? 'medio a los ' + c.halfMin + ' min' : 'medio a ' + c.halfAt + (c.halfMode === 'first' && c.halfMin ? ' o ' + c.halfMin + ' min' : '');
-  const resTiempos = medio + ' · ' + (c.softCap ? 'cap ' + c.softCap + ' min' : 'sin cap') + ' · ' + c.timeouts + ' TO de ' + c.toSecs + ' s';
+  return medio + ' · ' + (c.softCap ? 'cap ' + c.softCap + ' min' : 'sin cap') + ' · ' + c.timeouts + ' TO de ' + c.toSecs + ' s';
+}
+function camposTiempos(c) {
   let t = selectField('halfMode', 'Medio tiempo', { first: 'Lo que ocurra primero', points: 'Por puntos', time: 'Por tiempo' },
     c.halfMode === 'first' ? 'Al llegar a los puntos o, cumplido el tiempo, al terminar el punto en juego.' : '');
   t += '<div class="grid2">' +
@@ -105,14 +151,52 @@ export function viewSettings() {
     (c.halfMode !== 'points' ? numField('halfMin', 'Minutos medio tiempo', 'Al terminar el punto en juego') : '') + '</div>';
   t += '<div class="grid2">' + numField('softCap', 'Cap blando (min)', '0 = sin cap') +
     numField('timeouts', 'Timeouts por equipo') + numField('toSecs', 'Duración timeout (s)') + '</div>';
-  h += seccion('tiempos', 'Tiempos y timeouts', resTiempos, t);
+  return t;
+}
+function nombresModos() { const n = {}; Object.keys(MODOS).forEach(function (k) { n[k] = MODOS[k].nombre; }); return n; }
+
+// Pestaña Partido sin partido creado: crear el partido paso a paso.
+// (Ajustes no aparece en el menú hasta que el partido existe.)
+export function viewNuevoPartido() {
+  const c = cfg();
+  let h = encabezado('Gestión del equipo', c.club) + '<div class="pad stack">';
+  h += '<h2 class="h2 disp titulo-sec">Nuevo partido</h2>';
+  h += preparar(c);
+  // Reglas: vienen con valores típicos; se abren solo si hay que cambiarlas.
+  const modo = modoActual();
+  const resReglas = 'A ' + c.pointsToWin + (c.hardCap ? ' o ' + c.hardCap + ' min' : '') + ' · ' + resumenTiempos(c) + ' · ' + MODOS[modo].nombre.toLowerCase();
+  h += seccion('reglas', 'Reglas del partido', resReglas,
+    camposReglas(c) + camposTiempos(c) +
+    selectField('lineMode', 'Sugerencia de líneas', nombresModos(), MODOS[modo].ayuda + ' Los detalles se ajustan en Ajustes, ya con el partido creado.'));
+  h += '<p class="muted" style="margin:8px 0 0"><a href="privacidad.html">Privacidad y datos</a></p>';
+  const hay = store.roster.filter(function (p) { return !p.noConv; }).length;
+  h += '<div class="cta-fija"><button class="btn big fill disp full" data-a="startGame"' + (hay ? '' : ' disabled') + '>Crear partido</button>' +
+    (hay ? '' : '<span class="muted">Primero arma el plantel (paso 2).</span>') + '</div>';
+  return h + '</div>';
+}
+
+// Pestaña Ajustes: solo existe con un partido creado.
+export function viewSettings() {
+  const c = cfg();
+  if (!store.game) return viewNuevoPartido();
+  const s = derive();
+  let h = encabezado('Ajustes', c.club + ' ' + s.us + '–' + s.them + ' ' + c.rival) + '<div class="pad stack">';
+  h += '<button class="btn big fill disp full" data-a="closeAjustes">← Volver al partido</button>';
+  // Terminar el partido, a mano desde aquí.
+  if (!s.ended) h += '<button class="btn full fin-b" data-a="askEnd">Finalizar partido (' + s.us + '–' + s.them + ')</button>';
+  else h += '<button class="btn full" data-a="tab" data-v="summary">Ver en Dashboard</button>';
+
+  h += '<h2 class="h2 disp">Partido</h2>';
+  h += '<span class="muted">Jugando con <b>' + esc(c.club) + '</b> (' + DIV[c.division].toLowerCase() + '). El equipo no se cambia con un partido en curso.</span>';
+  h += campoRival(c);
+  h += camposReglas(c);
+  h += seccion('tiempos', 'Tiempos y timeouts', resumenTiempos(c), camposTiempos(c));
 
   // criterio (motor de juego)
   const modo = modoActual();
-  const nombresModos = {}; Object.keys(MODOS).forEach(function (k) { nombresModos[k] = MODOS[k].nombre; });
   const rivalTxt = { menor: 'rival menor', similar: 'rival similar', mayor: 'rival mayor' };
   const resMotor = MODOS[modo].nombre + (modo === 'competencia' ? ' · ' + (c.compModo === 'auto' ? 'automática' : MODALIDADES[c.compModo]) + ' · ' + rivalTxt[c.rivalNivel] + (c.crucial ? ' · crucial' : '') : '');
-  let m = selectField('lineMode', 'Criterio', nombresModos, MODOS[modo].ayuda);
+  let m = selectField('lineMode', 'Criterio', nombresModos(), MODOS[modo].ayuda);
   if (modo === 'competencia') {
     const mg = margenes(c);
     m += selectField('compModo', 'Modalidad', MODALIDADES,
@@ -131,21 +215,10 @@ export function viewSettings() {
   }
   h += seccion('motor', 'Motor de sugerencia', resMotor, m);
 
-  // control del partido
-  if (store.game) {
-    h += '<h2 class="h2 disp">Partido en curso</h2>';
-    h += '<button class="btn full" data-a="endGame">Finalizar partido ahora</button>';
-    h += '<button class="btn danger full" data-a="askReset">Borrar partido y empezar otro</button>';
-    h += '<p class="muted" style="margin:0">Exporta el resumen antes de borrar. Los datos se guardan solo en este dispositivo.</p>';
-  }
+  h += '<h2 class="h2 disp">Cerrar o descartar</h2>';
+  h += '<button class="btn full" data-a="askReset">Cerrar partido y crear otro</button>';
+  h += '<button class="btn danger full" data-a="askDiscard">Descartar partido (no se guarda)</button>';
+  h += '<p class="muted" style="margin:0">Al cerrar, el partido queda en el Dashboard. Los datos se guardan solo en este dispositivo.</p>';
   h += '<p class="muted" style="margin:8px 0 0"><a href="privacidad.html">Privacidad y datos</a></p>';
-
-  // botón de empezar: queda fijo abajo mientras se revisan los ajustes
-  if (!store.game) {
-    const hay = store.roster.some(function (p) { return !p.noConv; });
-    h += '<div class="cta-fija"><button class="btn big fill disp full" data-a="startGame"' + (hay ? '' : ' disabled') + '>Empezar partido</button>' +
-      (hay ? '' : '<span class="muted">Agrega o convoca jugadores en Plantel para empezar.</span>') + '</div>';
-  }
-  h += '</div>';
-  return h;
+  return h + '</div>';
 }

@@ -4,6 +4,7 @@ import { ui } from '../ui.js';
 import { elapsed, derive } from '../modelos/partido.js';
 import { describe } from '../modelos/eventos.js';
 import { render, toast } from './render.js';
+import { archivar, quitarSiNoTermino } from '../modelos/historial.js';
 
 // Si el partido terminó, congela el reloj; si se deshizo el final, lo reanuda.
 function revisarFinal() {
@@ -17,6 +18,8 @@ export function add(e) {
   e.ts = Date.now();
   store.game.events.push(e);
   revisarFinal();
+  // Al terminar, el partido queda guardado en el Dashboard.
+  if (derive().ended) archivar();
   save(); render();
 }
 
@@ -27,6 +30,7 @@ export function undo() {
   // Si ya no queda ningún pull, el reloj vuelve a cero.
   if (!g.events.some(function (x) { return x.type === 'pull'; })) g.start = null;
   revisarFinal();
+  quitarSiNoTermino();
   save();
   ui.modal = null; ui.pick = null; ui.pull = null;
   toast('Deshecho: ' + describe(e));

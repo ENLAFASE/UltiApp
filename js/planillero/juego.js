@@ -9,6 +9,7 @@ import { P, label, abrev, htmlBoton } from '../modelos/jugador.js';
 import { esc, fmtCuenta } from '../util/formato.js';
 import { header, chainHTML } from './marcador.js';
 import { escudo } from './encabezado.js';
+import { viewNuevoPartido, viewSettings } from './ajustes.js';
 import { viewLine } from './linea.js';
 import { viewPull } from './pull.js';
 import { viewCall } from './llamados.js';
@@ -82,20 +83,18 @@ function viewEnded(s) {
   const c = cfg();
   return '<div class="scr to-scr"><div class="to-centro"><span class="muted">Resultado final</span><h2 class="h2 disp" style="font-size:34px">' +
     esc(c.club) + ' ' + s.us + ' · ' + s.them + ' ' + esc(c.rival) + '</h2></div>' +
-    '<button class="btn big fill disp full" data-a="tab" data-v="summary">Ver resumen</button>' +
+    '<button class="btn big fill disp full" data-a="tab" data-v="summary">Ver en Dashboard</button>' +
+    // El partido terminado ya está guardado en el Dashboard: se puede cerrar sin confirmar.
+    '<button class="btn big disp full nuevo-b" data-a="doReset">Crear otro partido</button>' +
     '<div class="mini" style="align-self:stretch"><button class="btn" data-a="undo">Deshacer último evento</button></div></div>';
 }
 
 export function viewGame() {
-  if (!store.game) {
-    const n = store.roster.filter(function (p) { return !p.noConv; }).length;
-    return '<div class="empty">' + escudo('crest-xl') + '<h2 class="h2 disp">No hay partido en curso</h2>' +
-      '<p class="muted" style="margin:0">' + (n ? n + ' convocados listos. Revisa el rival y quién saca el primer pull.' : 'Primero arma el plantel; después define el rival y empieza.') + '</p>' +
-      (n ? '<button class="btn big fill disp" data-a="tab" data-v="settings">Preparar partido</button>'
-         : '<button class="btn big fill disp" data-a="tab" data-v="roster">Armar plantel</button>') + '</div>';
-  }
+  if (!store.game) return viewNuevoPartido();
   const s = derive();
   // El llamado ocupa toda la pantalla (sin marcador) para que quepa completo.
+  // Ajustes y finalizar, abiertos desde el marcador.
+  if (ui.view === 'ajustes') return viewSettings();
   if (ui.view === 'call' && s.phase === 'play') return viewCall(s);
   ui.view = null;
   let h = header(s);

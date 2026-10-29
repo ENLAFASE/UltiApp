@@ -1,6 +1,6 @@
 // Qué pasa al tocar cada botón. Cada botón tiene un atributo data-a="..."
 // con el nombre de la acción; aquí se decide qué hacer con cada una.
-import { store, save, cfg, DEF_CFG, aplicarCategoria, generoFueraDeCategoria } from '../almacen.js';
+import { store, save, cfg, DEF_CFG, EQUIPOS, aplicarCategoria, generoFueraDeCategoria, ramasDe } from '../almacen.js';
 import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
 import { teamName } from '../modelos/eventos.js';
@@ -15,6 +15,7 @@ import { hangTick, quienSaca } from './pull.js';
 import { leerLineaPlantel, lineaPlantel } from './plantel.js';
 import { convocados } from '../criterio/recomendador.js';
 import { porNumero } from '../modelos/jugador.js';
+import { archivar, borrar as borrarHist } from '../modelos/historial.js';
 
 /* ---------- convocados ---------- */
 function cambiarConvocatoria(p) {
@@ -23,10 +24,16 @@ function cambiarConvocatoria(p) {
   save();
   toast(label(p.id) + (p.noConv ? ' pasa a no convocados' : ' convocado'));
 }
-// Un jugador nuevo del género que no corresponde a la categoría entra como no convocado.
+// Un jugador nuevo queda convocado si juega en la rama del equipo elegido
+// (o, para otro equipo, si corresponde a la categoría).
 function convocatoriaInicial(p) {
-  if (generoFueraDeCategoria(cfg().division) === p.g) { p.noConv = true; p.noConvAuto = true; }
+  const eq = cfg().equipo;
+  if (EQUIPOS[eq]) p.noConv = ramasDe(p).indexOf(eq) < 0;
+  else if (generoFueraDeCategoria(cfg().division) === p.g) p.noConv = true;
 }
+// Ramas para jugadores nuevos sin ramas indicadas: la del equipo elegido.
+function ramasPorDefecto() { return EQUIPOS[cfg().equipo] ? [cfg().equipo] : ['mix']; }
+function alternar(lista, v) { const i = lista.indexOf(v); if (i >= 0) lista.splice(i, 1); else lista.push(v); return lista; }
 
 /* ---------- deslizar hacia la derecha en el plantel ---------- */
 let desliz = null;
@@ -115,10 +122,26 @@ function alTocar(ev) {
   const s = store.game ? derive() : null;
 
   switch (a) {
-    case 'tab': ui.tab = v; ui.modal = null; window.scrollTo(0, 0); break;
+    case 'tab': ui.tab = v; ui.modal = null; if (ui.view === 'ajustes') ui.view = null; window.scrollTo(0, 0); break;
+    case 'openAjustes': ui.view = 'ajustes'; ui.modal = null; window.scrollTo(0, 0); break;
+    case 'closeAjustes': ui.view = null; break;
     case 'undo': undo(); return;
     case 'closeModal': ui.modal = null; break;
     case 'secc': ui.abiertos[v] = !ui.abiertos[v]; break;
+    case 'equipo': {
+      // Cambia de equipo: nombre y tipo de partido. No se permite con un partido en curso.
+      if (store.game) { toast('Termina o borra el partido para cambiar de equipo'); break; }
+      const c = store.cfg, e = EQUIPOS[v];
+      c.equipo = v;
+      if (e) { c.club = e.nombre; c.division = e.division; }
+      else if (/h[uú]sare[sx]/i.test(c.club)) c.club = 'Mi Club';
+      c.mixed = c.division === 'mixto';
+      aplicarCategoria(store);
+      save(); ui.verOtros = false;
+      const n = store.roster.filter(function (p) { return !p.noConv; }).length;
+      toast((e ? e.nombre : 'Otro equipo') + ' · ' + n + ' convocados');
+      break;
+    }
 
     // línea
     case 'selP': {
@@ -231,13 +254,28 @@ function alTocar(ev) {
 
     // ajustes y plantel
     case 'npG': ui.newP.g = v; break;
+    case 'npRama': alternar(ui.newP.ramas, v); break;
+    case 'peRama': {
+      const p = P(id); if (!p) break;
+      p.ramas = alternar(ramasDe(p).slice(), v);
+      // Sin partido creado, la convocatoria sigue a la rama del equipo elegido.
+      if (!store.game && EQUIPOS[cfg().equipo]) p.noConv = p.ramas.indexOf(cfg().equipo) < 0;
+      save();
+      break;
+    }
+    case 'plRama': ui.plRama = v; break;
+    // Elegir quiénes juegan el partido (en Nuevo partido).
+    case 'convSel': { const p = P(id); if (p) { p.noConv = !p.noConv; save(); } break; }
+    case 'convReset': aplicarCategoria(store); save(); toast('Convocatoria según la rama'); break;
+    case 'verOtros': ui.verOtros = !ui.verOtros; break;
     case 'addP': {
       const np = ui.newP;
       if (!String(np.num).trim()) { toast('Falta el número'); break; }
-      const nuevo = { id: uid(), num: String(np.num).trim(), name: np.name.trim(), g: np.g };
+      if (!np.ramas.length) { toast('Marca al menos una rama'); break; }
+      const nuevo = { id: uid(), num: String(np.num).trim(), name: np.name.trim(), g: np.g, ramas: np.ramas.slice() };
       convocatoriaInicial(nuevo);
       store.roster.push(nuevo);
-      save(); ui.newP = { num: '', name: '', g: np.g }; toast('Jugador agregado');
+      save(); ui.newP = { num: '', name: '', g: np.g, ramas: np.ramas.slice() }; toast('Jugador agregado');
       break;
     }
     case 'addBulk': {
@@ -252,10 +290,11 @@ function alTocar(ev) {
         });
         if (existe) {
           if (d.g) existe.g = d.g;
+          if (d.ramas.length) existe.ramas = d.ramas;
           if (Object.keys(d.ev).length) existe.ev = Object.assign({}, existe.ev || {}, d.ev);
           actualizados++;
         } else {
-          const p = { id: uid(), num: d.num, name: d.name, g: d.g || 'M' };
+          const p = { id: uid(), num: d.num, name: d.name, g: d.g || 'M', ramas: d.ramas.length ? d.ramas : ramasPorDefecto() };
           if (Object.keys(d.ev).length) p.ev = d.ev;
           convocatoriaInicial(p);
           store.roster.push(p);
@@ -309,13 +348,34 @@ function alTocar(ev) {
       save(); ui.tab = 'game';
       break;
     case 'askEnd':
-      ui.modal = { kind: 'confirm', title: '¿Finalizar el partido?', text: 'Se cumplió el tiempo. El resultado quedará como está.', ok: 'Finalizar', okClass: 'fill', action: 'endGame' };
+      ui.modal = { kind: 'confirm', title: '¿Finalizar el partido?', text: 'El resultado queda ' + s.us + '-' + s.them + (s.us + s.them > 0 ? ' y se guarda en el Dashboard.' : '. Sin puntos, no se guarda en el Dashboard.') + (v === 'tiempo' ? ' Se cumplió el tiempo.' : ''), ok: 'Finalizar', okClass: 'fill', action: 'endGame' };
       break;
-    case 'endGame': ui.modal = null; add({ type: 'end' }); ui.tab = 'summary'; break;
-    case 'askReset':
-      ui.modal = { kind: 'confirm', title: '¿Borrar el partido?', text: 'Se perderán todos los eventos de este partido. El plantel y los ajustes se mantienen.', ok: 'Borrar', action: 'doReset' };
+    case 'endGame': ui.modal = null; ui.view = null; ui.tab = 'summary'; ui.dash = 'actual'; if (s.us + s.them > 0) toast('Partido guardado en el Dashboard'); add({ type: 'end' }); return;
+    case 'askReset': {
+      const conPuntos = s && s.us + s.them > 0;
+      ui.modal = conPuntos
+        ? { kind: 'confirm', title: '¿Cerrar este partido?', text: 'Queda guardado en el Dashboard con el marcador ' + s.us + '-' + s.them + '. El plantel y los ajustes se mantienen.', ok: 'Cerrar partido', okClass: 'fill', action: 'doReset' }
+        : { kind: 'confirm', title: '¿Borrar el partido?', text: 'Todavía no tiene puntos, así que no se guarda. El plantel y los ajustes se mantienen.', ok: 'Borrar', action: 'doReset' };
       break;
-    case 'doReset': store.game = null; ui.modal = null; save(); break;
+    }
+    case 'doReset': archivar(); store.game = null; ui.modal = null; ui.view = null; ui.dash = null; save(); break;
+    case 'askDiscard':
+      ui.modal = { kind: 'confirm', title: '¿Descartar el partido?', text: 'Se borran todos sus eventos y no queda en el Dashboard.', ok: 'Descartar', action: 'doDiscard' };
+      break;
+    case 'doDiscard':
+      if (store.game && store.historial) { const gid = store.game.created; store.historial = store.historial.filter(function (r) { return r.id !== gid; }); }
+      store.game = null; ui.modal = null; ui.view = null; ui.dash = null; save(); break;
+
+    // dashboard
+    case 'dashModo': ui.dash = v; ui.dashVer = null; window.scrollTo(0, 0); break;
+    case 'dashEq': ui.dashEq = v; ui.dashVer = null; break;
+    case 'dashRank': ui.dashRank = v; break;
+    case 'dashVer': ui.dash = 'historial'; ui.dashVer = v; window.scrollTo(0, 0); break;
+    case 'dashVolver': ui.dashVer = null; break;
+    case 'askBorrarHist':
+      ui.modal = { kind: 'confirm', title: '¿Borrar este partido del historial?', text: 'Sus estadísticas dejan de contar en el Dashboard. No se puede deshacer.', ok: 'Borrar', action: 'borrarHist', id: id };
+      break;
+    case 'borrarHist': borrarHist(id); ui.dashVer = null; ui.modal = null; toast('Partido borrado del historial'); break;
   }
   render();
 }
@@ -335,9 +395,7 @@ function alCambiar(ev) {
   if (key === 'division') {
     // "mixed" se mantiene para el resto de la app; los del otro género pasan a no convocados.
     c.mixed = c.division === 'mixto';
-    aplicarCategoria(store);
-    const fuera = store.roster.filter(function (p) { return p.noConvAuto; }).length;
-    if (fuera) toast(fuera + ' jugador(es) pasan a no convocados por la categoría');
+    if (!store.game) aplicarCategoria(store);
   }
   save(); render();
 }

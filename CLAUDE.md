@@ -75,6 +75,7 @@ UltiApp/
     │   └── recomendador.js   # arma la línea de 7 y explica cada elección
     ├── modelos/
     │   ├── partido.js        # derive() (eventos → marcador y estadísticas), reloj, caps, ABBA
+    │   ├── historial.js      # partidos guardados (store.historial), holds/breaks, agregados del Dashboard
     │   ├── jugador.js        # buscar y mostrar jugadores
     │   └── eventos.js        # tipos de llamado, resoluciones, describe(evento)
     ├── planillero/
@@ -88,8 +89,9 @@ UltiApp/
     │   ├── linea.js          # elegir línea, ABBA y línea sugerida
     │   ├── pull.js
     │   ├── llamados.js
-    │   ├── resumen.js        # pestaña Resumen
-    │   ├── ajustes.js        # pestaña Ajustes (partido, criterio y mapa del marcador)
+    │   ├── resumen.js        # resumen del partido en curso (se muestra dentro del Dashboard)
+    │   ├── dashboard.js      # pestaña Dashboard: este partido / historial (récord, hold, break, tendencia, ranking)
+    │   ├── ajustes.js        # Nuevo partido (sin partido) y Ajustes (con partido, desde el engranaje del marcador)
     │   └── plantel.js        # pestaña Plantel (visión, convocados, edición, carga por texto)
     └── util/
         ├── formato.js        # esc(), fmt(), nombres de archivo
@@ -109,7 +111,9 @@ Las pantallas del partido están en `js/planillero/` por razones históricas, pe
 - **Jugadores en pantalla:** nombre abreviado a 3 letras en grande ("Rod"), número chico debajo (`htmlBoton` en `js/modelos/jugador.js`).
 - **Género:** en pantalla H = hombre y M = mujer. Internamente sigue 'M' = hombre y 'F' = mujer (datos antiguos). Colores: `--hom` (petróleo) y `--muj` (fucsia), con texto blanco.
 - **Proporción:** el cuadro toma el color del género que predomina y se cambia solo manteniendo presionado 1 segundo.
-- **Barra inferior:** 4 pestañas con ícono (Partido, Resumen, Plantel, Ajustes), propuesta de la diseñadora UX aceptada por el usuario el 2026-10-29 (reemplaza los 2 bloques anteriores).
+- **Barra inferior:** 3 pestañas con ícono: Plantel, Partido (o "Nuevo partido" si no hay partido) y Dashboard. Ajustes ya no es pestaña: sin partido, las reglas están en Nuevo partido; con partido, se abren desde el engranaje del marcador (`ui.view = 'ajustes'`). Segunda propuesta UX, incorporada el 2026-10-29.
+- **Equipos y ramas del club:** `EQUIPOS` en `almacen.js` = Húsares Mix (mixto), Húsares Open (open) y Husarex (master +32, open), más "otro equipo" con nombre libre (`cfg.equipo`). Cada jugador tiene `ramas` (puede ser varias). Al elegir equipo se convoca a quienes juegan en esa rama (`aplicarCategoria`); con "otro", según el género de la categoría. En la carga por texto las ramas se escriben como `mix`, `open`, `husarex` (o `hx`).
+- **Historial y Dashboard:** al terminar un partido (o cerrarlo con puntos) se guarda una copia completa en `store.historial` (eventos, reglas y jugadores), en localStorage. "Descartar" lo borra sin guardar. Con muchos partidos podría acercarse al límite de localStorage (~5 MB): por eso sigue pendiente pasar a IndexedDB.
 - **Línea:** solo convocados; cada botón muestra puntos y minutos jugados ("3p 6'"). Con 7 marcados, el lugar de "Sugerir" muestra la tarjeta de la línea (nivel, mejor manejo/avance/gol, desgaste).
 - **Plantel (pestaña propia):** visión de la evaluación (puntaje global, por posición, ranking, alertas), convocados y no convocados (deslizar a la derecha para cambiar; la categoría femenino/open marca sola al otro género), edición al tocar, carga por texto `36 Enzo H man5 av5 gol3 def3` y copia de respaldo en el mismo formato. Campos por jugador: `noConv`, `noConvAuto` (marcado por la categoría).
 - **Tipo de partido:** `cfg.division` = mixto / open / femenino; `cfg.mixed` se mantiene sincronizado (true solo en mixto).
@@ -121,9 +125,11 @@ Las pantallas del partido están en `js/planillero/` por razones históricas, pe
 - Colores en `css/base.css`: `--us` naranja Húsares (nuestro equipo), `--them` grafito (rival), `--warn` ámbar (avisos, separado del rival), `--acc` ámbar de acento. No reutilizar `--them` para avisos.
 - Letras: Teko (`--display`, clase `.num-d`) para marcador, reloj y títulos; Barlow para el texto; botones grandes en mayúsculas.
 - El escudo solo aparece si el equipo se llama "Húsares" (`esHusares()` en `encabezado.js`), para que la app siga sirviendo a otros clubes.
-- Ajustes: tarjeta "Preparar partido" (rival, 7+ convocados, primer pull), secciones plegables (`ui.abiertos`) y botón "Empezar partido" fijo abajo.
+- Nuevo partido: tarjeta "Preparar partido" en 4 pasos (equipo, quiénes juegan, rival, primer pull), reglas plegables (`ui.abiertos`) y botón "Crear partido" fijo abajo.
+- Las entregas de la diseñadora llegan como ZIP con la app completa: compararlas con la versión desde la que partió (no sobrescribir), combinar en tres vías y no tomar su CLAUDE.md si viene desactualizado.
 - Primer uso guiado: sin jugadores, la app abre en Partido con "Armar plantel".
 - Resumen: destacados (goles, asistencias, blocks) y columna de nombres fija en la tabla.
+- Plantel: copiar como texto con desplegable (plantel completo, convocados o no convocados), formato con ramas y evaluación.
 
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
 

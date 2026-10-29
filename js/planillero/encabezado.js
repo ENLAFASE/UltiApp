@@ -2,8 +2,8 @@
 import { cfg } from '../almacen.js';
 import { esc } from '../util/formato.js';
 
-// El escudo de Húsares solo se muestra si el equipo se llama Húsares.
-export function esHusares() { return /h[uú]sares/i.test(cfg().club || ''); }
+// El escudo se muestra para los equipos del club (Húsares Mix, Húsares Open, Husarex).
+export function esHusares() { return /h[uú]sare[sx]/i.test(cfg().club || ''); }
 
 export function escudo(clase) {
   return esHusares() ? '<img class="' + (clase || 'crest') + '" src="img/husares-escudo.png" alt="" aria-hidden="true">' : '';

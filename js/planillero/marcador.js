@@ -3,7 +3,7 @@ import { store, cfg } from '../almacen.js';
 import { elapsed, capInfo } from '../modelos/partido.js';
 import { P, abrev } from '../modelos/jugador.js';
 import { esc, fmt } from '../util/formato.js';
-import { escudo } from './encabezado.js';
+import { escudo, icono } from './encabezado.js';
 
 export function header(s) {
   const c = cfg(), iniciado = !!store.game.start;
@@ -25,7 +25,9 @@ export function header(s) {
         '<span class="cap" data-cap>' + esc(capInfo(s)) + '</span></div>' +
       '<div class="team r"><span class="tn">' + esc(c.rival) + '</span><span class="sc num-d">' + s.them + '</span></div>' +
     '</div>' +
-    '<div class="sb-info">' + pips(toUs, 'l') + '<span class="pt">' + info + '</span>' + pips(toTh, 'r') + '</div>' +
+    '<div class="sb-info">' + pips(toUs, 'l') + '<span class="pt sb-acc"><button class="sb-aj" data-a="openAjustes" aria-label="Ajustes del partido"><span>' + info + '</span><span class="sb-gear" aria-hidden="true">' + icono('settings') + '</span></button>' +
+      // Finalizar siempre a mano durante el partido (pide confirmación).
+      (s.phase === 'ended' ? '' : '<button class="sb-fin" data-a="askEnd">Finalizar</button>') + '</span>' + pips(toTh, 'r') + '</div>' +
   '</header>';
 }
 

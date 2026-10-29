@@ -5,7 +5,8 @@
 const KEY = 'ufs-v1';
 
 export const DEF_CFG = {
-  club: 'Húsares', rival: 'Rival',
+  club: 'Húsares Mix', rival: 'Rival',
+  equipo: 'mix',        // equipo del club: 'mix', 'open', 'husarex' u 'otro' (ver EQUIPOS)
   pointsToWin: 15,
   // Medio tiempo: 'points' (por puntos), 'time' (por minutos) o
   // 'first' (lo que ocurra primero: los puntos o, cumplido el tiempo, al terminar el punto).
@@ -30,24 +31,37 @@ export const DEF_CFG = {
   mixed: true, startRatio: '4M3F', abba: true
 };
 
+// Equipos del club. Elegir uno deja puesto el nombre y el tipo de partido.
+// El plantel es uno solo: en Open y Husarex (open) las jugadoras pasan solas a no convocadas.
+export const EQUIPOS = {
+  mix: { nombre: 'Húsares Mix', corto: 'Mix', detalle: 'Mixto', division: 'mixto' },
+  open: { nombre: 'Húsares Open', corto: 'Open', detalle: 'Open', division: 'open' },
+  // Husarex: rama master (más de 32 años) que juega open.
+  husarex: { nombre: 'Husarex', corto: 'Husarex', detalle: 'Master +32', division: 'open' }
+};
+
 // Jugadores que no corresponden a la categoría ('M' = hombre, 'F' = mujer).
 export function generoFueraDeCategoria(division) {
   return division === 'femenino' ? 'M' : division === 'open' ? 'F' : null;
 }
 
-// Al cambiar el tipo de partido, marca automáticamente como no convocados a
-// los jugadores del género que no corresponde, y vuelve a convocar a los que
-// habían quedado fuera solo por la categoría anterior.
+// Ramas en que juega cada jugador (p.ramas), por ejemplo ['mix', 'husarex'].
+// Un jugador puede estar en varias.
+export function ramasDe(p) { return Array.isArray(p.ramas) ? p.ramas : []; }
+
+// Convocatoria del próximo partido (p.noConv = no convocado):
+// - equipo del club: se convoca a quienes juegan en esa rama;
+// - otro equipo: según la categoría (open/femenino deja fuera al otro género).
 export function aplicarCategoria(d) {
-  const fuera = generoFueraDeCategoria(d.cfg.division);
+  const eq = d.cfg.equipo, fuera = generoFueraDeCategoria(d.cfg.division);
   d.roster.forEach(function (p) {
-    if (fuera && p.g === fuera) {
-      if (!p.noConv) { p.noConv = true; p.noConvAuto = true; }
-    } else if (p.noConvAuto) {
-      p.noConv = false; p.noConvAuto = false;
-    }
+    p.noConv = EQUIPOS[eq] ? ramasDe(p).indexOf(eq) < 0 : !!(fuera && p.g === fuera);
+    delete p.noConvAuto;
   });
 }
+
+// Ramas por defecto para jugadores guardados antes de que existieran las ramas.
+function ramasIniciales(p) { return p.g === 'F' ? ['mix'] : ['mix', 'open']; }
 
 function cargar() {
   try {
@@ -59,11 +73,27 @@ function cargar() {
       // Versiones anteriores: "partido mixto" (sí/no) pasa a tipo de partido.
       if (!viejo.division) d.cfg.division = viejo.mixed === false ? 'open' : 'mixto';
       d.cfg.mixed = d.cfg.division === 'mixto';
+      // Datos sin equipo elegido: se deduce del nombre y la categoría.
+      if (!viejo.equipo) {
+        if (/h[uú]sare[sx]/i.test(d.cfg.club || '')) {
+          d.cfg.equipo = /husarex/i.test(d.cfg.club) ? 'husarex' : d.cfg.division === 'open' ? 'open' : 'mix';
+          d.cfg.club = EQUIPOS[d.cfg.equipo].nombre;
+        } else d.cfg.equipo = 'otro';
+      }
+      // Un equipo del club siempre usa su categoría (por ejemplo, Husarex pasó a open).
+      const eq = EQUIPOS[d.cfg.equipo];
+      if (eq && d.cfg.division !== eq.division) {
+        d.cfg.division = eq.division; d.cfg.mixed = eq.division === 'mixto';
+        d.roster = d.roster || [];
+        aplicarCategoria(d);
+      }
       // El antiguo "margen para rotar" se reemplaza por los márgenes de ventaja (+4)
       // y desventaja (-6), con los valores por defecto pedidos.
       delete d.cfg.compMargin;
       d.roster = d.roster || [];
+      d.roster.forEach(function (p) { if (!Array.isArray(p.ramas)) p.ramas = ramasIniciales(p); });
       d.game = d.game || null;
+      d.historial = d.historial || []; // partidos guardados (Dashboard)
       // Partidos guardados con el reloj antiguo (que se iniciaba a mano).
       if (d.game && d.game.clock && d.game.start === undefined) {
         const c = d.game.clock;
@@ -73,7 +103,7 @@ function cargar() {
       return d;
     }
   } catch (e) {}
-  return { cfg: Object.assign({}, DEF_CFG), roster: [], game: null };
+  return { cfg: Object.assign({}, DEF_CFG), roster: [], game: null, historial: [] };
 }
 
 // store = todo lo guardado: configuración (cfg), plantel (roster) y partido en curso (game).

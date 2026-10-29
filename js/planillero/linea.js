@@ -120,7 +120,7 @@ export function viewLine(s) {
   h += '</div>';
 
   if (s.half && s.halfPoint === s.point) h += '<div class="aviso">Medio tiempo. Empieza la segunda mitad.</div>';
-  if (tiempoCumplido()) h += '<div class="aviso"><span>Se cumplió el tiempo del partido.</span><button class="btn sm danger" data-a="askEnd">Finalizar</button></div>';
+  if (tiempoCumplido()) h += '<div class="aviso"><span>Se cumplió el tiempo del partido.</span><button class="btn sm danger" data-a="askEnd" data-v="tiempo">Finalizar</button></div>';
 
   // Zona del marcador (solo en Competencia) y conteo de la línea.
   let zonaTxt = '';
