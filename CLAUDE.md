@@ -99,6 +99,10 @@ Las pantallas del partido están en `js/planillero/` por razones históricas, pe
 - **Pull:** quién saca se deduce (primer pull en Ajustes; luego saca quien anotó; en la 2.ª mitad recibe quien sacó primero). Mi equipo: ¿quién saca? → cronometrar (tocar al soltar, luego tocar cualquier parte) → dentro/fuera. Rival: no se cronometra. Al elegir dentro/fuera pasa solo al juego.
 - **Reloj:** parte al soltar el primer pull (`game.start`), no se pausa, se congela al terminar (`game.finishedAt`).
 - **Timeout:** cuenta regresiva de `cfg.toSecs` segundos sin detener el reloj; no se permiten más que `cfg.timeouts` por equipo.
+- **Jugadores en pantalla:** nombre abreviado a 3 letras en grande ("Rod"), número chico debajo (`htmlBoton` en `js/modelos/jugador.js`).
+- **Género:** en pantalla H = hombre y M = mujer. Internamente sigue 'M' = hombre y 'F' = mujer (datos antiguos). Colores: `--hom` (petróleo) y `--muj` (fucsia), con texto blanco.
+- **Proporción:** el cuadro toma el color del género que predomina y se cambia solo manteniendo presionado 1 segundo.
+- **Plantel:** tocar un jugador en Ajustes abre su edición (número, nombre, género, evaluación, quitar). Los sin evaluar se marcan en naranjo.
 - **Llamado:** pantalla completa con 4 pasos numerados (qué equipo llama, tipo, resolución, posesión). No se registra el jugador que llama.
 
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).

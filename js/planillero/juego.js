@@ -5,18 +5,16 @@ import { store, cfg } from '../almacen.js';
 import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
 import { teamName } from '../modelos/eventos.js';
-import { P } from '../modelos/jugador.js';
+import { P, label, abrev, htmlBoton } from '../modelos/jugador.js';
 import { esc, fmtCuenta } from '../util/formato.js';
 import { header, chainHTML } from './marcador.js';
 import { viewLine } from './linea.js';
 import { viewPull } from './pull.js';
 import { viewCall } from './llamados.js';
 
-// Botón de jugador: número grande y nombre.
+// Botón de jugador: nombre abreviado grande y número chico.
 function botonJugador(id, accion, extra) {
-  const p = P(id);
-  return '<button class="pb" data-a="' + accion + '" data-id="' + id + '"' + (extra || '') + '>' +
-    '<span class="num disp">#' + esc(p ? p.num : '?') + '</span><span class="nom">' + esc(p ? p.name : '') + '</span></button>';
+  return '<button class="pb" data-a="' + accion + '" data-id="' + id + '" aria-label="' + esc(label(id)) + '"' + (extra || '') + '>' + htmlBoton(P(id)) + '</button>';
 }
 
 function barraInferior() {
@@ -46,7 +44,7 @@ function viewPlay(s) {
 
   } else if (s.possession === 'us') {
     const p = P(s.holder);
-    h += '<div class="paso-h us"><span class="disp">#' + esc(p ? p.num : '?') + '</span><span>' + esc(p ? p.name : '') + ' tiene el disco · toca a quién le pasa</span></div>';
+    h += '<div class="paso-h us"><span class="disp">' + esc(abrev(p)) + '</span><span>#' + esc(p ? p.num : '?') + ' tiene el disco · toca a quién le pasa</span></div>';
     h += '<div class="pgrid" style="--cols:2">';
     s.line.forEach(function (id) {
       h += botonJugador(id, 'tapP', id === s.holder ? ' aria-pressed="true" disabled' : '');

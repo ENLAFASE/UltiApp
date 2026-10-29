@@ -1,7 +1,7 @@
 // Encabezado con el marcador, el reloj, el cap y los timeouts.
 import { store, cfg } from '../almacen.js';
 import { elapsed, capInfo } from '../modelos/partido.js';
-import { short } from '../modelos/jugador.js';
+import { P, abrev } from '../modelos/jugador.js';
 import { esc, fmt } from '../util/formato.js';
 
 export function header(s) {
@@ -25,6 +25,6 @@ export function header(s) {
 // Secuencia de pases del punto en una línea: "#7 → #12 → turnover".
 export function chainHTML(s) {
   if (!s.chain.length) return '';
-  const items = s.chain.slice(-8).map(function (it) { return it.x ? '<span class="x">turnover</span>' : esc(short(it.id)); });
+  const items = s.chain.slice(-8).map(function (it) { return it.x ? '<span class="x">turnover</span>' : esc(abrev(P(it.id))); });
   return (s.chain.length > 8 ? '… ' : '') + items.join(' → ');
 }

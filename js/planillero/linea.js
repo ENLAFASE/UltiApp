@@ -2,7 +2,7 @@
 import { store, cfg } from '../almacen.js';
 import { ui } from '../ui.js';
 import { ratioFor, reqCounts, ratioText, tiempoCumplido } from '../modelos/partido.js';
-import { P, porNumero } from '../modelos/jugador.js';
+import { P, label, porNumero, htmlBoton } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
 import { recomendarLinea, MODOS, modoActual } from '../coach/recomendador.js';
 
@@ -38,7 +38,7 @@ export function revisarLinea(s) {
   if (r) {
     const req = reqCounts(r), t = contarGeneros(ui.sel);
     if (n === EN_CANCHA && (t.M !== req.M || t.F !== req.F)) {
-      avisos.push('La proporción es ' + t.M + ' masc. / ' + t.F + ' fem., pero corresponde ' + ratioText(r));
+      avisos.push('La proporción es ' + t.M + ' hombres / ' + t.F + ' mujeres, pero corresponde ' + ratioText(r));
     }
   }
   return avisos;
@@ -50,14 +50,17 @@ export function modalPorQue() {
   let h = '<h2 class="h2 disp">¿Por qué esta línea?</h2><p style="margin:0"><b>' + esc(k.resumen) + '</b></p><div class="stack" style="gap:6px">';
   k.ids.forEach(function (id) {
     const p = P(id);
-    h += '<div class="item"><span><b>#' + esc(p ? p.num : '?') + ' ' + esc(p ? p.name : '') + '</b><br><span class="muted">' + esc(k.motivos[id] || '') + '</span></span></div>';
+    h += '<div class="item"><span><b>' + esc(label(id)) + '</b><br><span class="muted">' + esc(k.motivos[id] || '') + '</span></span></div>';
   });
   h += '</div>';
   if (k.sinEvaluar) h += '<p class="muted" style="margin:0">' + k.sinEvaluar + ' jugador(es) sin evaluar cuentan como nivel 3. Evalúalos en Ajustes → Plantel.</p>';
   return h + '<button class="btn full" data-a="closeModal">Cerrar</button>';
 }
 
-function ratioCorto(r) { return r === '4M3F' ? '4M · 3F' : '3M · 4F'; }
+// Proporción en pantalla, con el género que predomina primero.
+// (Internamente '4M3F' = 4 hombres y 3 mujeres.)
+function ratioCorto(r) { return r === '4M3F' ? '4H · 3M' : '4M · 3H'; }
+function ratioPredomina(r) { return r === '4M3F' ? 'hom' : 'muj'; }
 
 // Columnas según el tamaño del plantel, para que todos quepan sin desplazar.
 function columnas(n) { return n <= 8 ? 2 : n <= 15 ? 3 : n <= 24 ? 4 : 5; }
@@ -72,14 +75,19 @@ export function viewLine(s) {
   // Lo más importante para el coach: ataque o defensa, y la proporción.
   h += '<div class="lin-top' + (r ? '' : ' uno') + '">' +
     '<div class="modo ' + (ataque ? 'at' : 'df') + '"><span class="disp">' + (ataque ? 'ATAQUE' : 'DEFENSA') + '</span><small>' + (ataque ? 'Recibimos el pull' : 'Sacamos el pull') + '</small></div>';
-  if (r) h += '<button class="modo ratio" data-a="swapRatio" aria-label="Cambiar proporción"><span class="disp">' + ratioCorto(r) + '</span><small>' + (ui.ratioSwap ? 'Cambiada a mano' : (c.abba ? 'Regla ABBA' : 'Proporción fija')) + ' · tocar para cambiar</small></button>';
+  // Color según el género que predomina. Para cambiarla hay que mantener presionado 1 segundo.
+  if (r) {
+    h += '<button class="modo ratio ' + ratioPredomina(r) + '" data-a="swapRatio" aria-label="Proporción ' + ratioText(r) + '. Mantén presionado para cambiar">' +
+      '<span class="disp">' + ratioCorto(r) + '</span><small>' + (r === '4M3F' ? 'Más hombres' : 'Más mujeres') + ' · ' +
+      (ui.ratioSwap ? 'cambiada a mano' : (c.abba ? 'ABBA' : 'fija')) + '</small><small class="hint">Mantén presionado para cambiar</small></button>';
+  }
   h += '</div>';
 
   if (s.half && s.halfPoint === s.point) h += '<div class="aviso">Medio tiempo. Empieza la segunda mitad.</div>';
   if (tiempoCumplido()) h += '<div class="aviso"><span>Se cumplió el tiempo del partido.</span><button class="btn sm danger" data-a="askEnd">Finalizar</button></div>';
 
   h += '<div class="cuenta">Línea del punto ' + s.point + ': <b class="' + (n === EN_CANCHA ? 'ok' : 'warn') + '">' + n + ' / 7</b>' +
-    (req ? ' · Masc. <b class="' + (t.M === req.M ? 'ok' : 'warn') + '">' + t.M + ' / ' + req.M + '</b> · Fem. <b class="' + (t.F === req.F ? 'ok' : 'warn') + '">' + t.F + ' / ' + req.F + '</b>' : '') + '</div>';
+    (req ? ' · <span class="gH">H</span> <b class="' + (t.M === req.M ? 'ok' : 'warn') + '">' + t.M + ' / ' + req.M + '</b> · <span class="gM">M</span> <b class="' + (t.F === req.F ? 'ok' : 'warn') + '">' + t.F + ' / ' + req.F + '</b>' : '') + '</div>';
 
   if (ui.sug) {
     h += '<button class="aviso info why" data-a="openWhy"><span>' + esc(ui.sug.resumen) + '</span><b>¿Por qué?</b></button>';
@@ -91,10 +99,8 @@ export function viewLine(s) {
     h += '<div class="pgrid" style="--cols:' + columnas(roster.length) + '">';
     roster.forEach(function (p) {
       const on = ui.sel.indexOf(p.id) >= 0, pts = (s.stats[p.id] || {}).pts || 0, rep = s.lastLine.indexOf(p.id) >= 0;
-      h += '<button class="pb' + (rep ? ' rep' : '') + '" aria-pressed="' + on + '" data-a="selP" data-id="' + p.id + '">' +
-        '<span class="num disp">#' + esc(p.num) + '</span><span class="nom">' + esc(p.name || '') + '</span>' +
-        '<span class="meta">' + pts + ' pts' + (rep ? ' · jugó' : '') + '</span>' +
-        (c.mixed ? '<span class="g">' + (p.g === 'F' ? 'F' : 'M') + '</span>' : '') + '</button>';
+      h += '<button class="pb' + (rep ? ' rep' : '') + '" aria-pressed="' + on + '" data-a="selP" data-id="' + p.id + '" aria-label="' + esc(label(p.id)) + '">' +
+        htmlBoton(p, pts + (pts === 1 ? ' pt' : ' pts') + (rep ? ' · jugó' : ''), c.mixed) + '</button>';
     });
     h += '</div>';
   }

@@ -15,6 +15,6 @@ export const ui = {
   modal: null,
   toast: null,
   ignoreClickUntil: 0, // evita toques "fantasma" justo después de cronometrar
-  newP: { num: '', name: '', g: 'M' },
+  newP: { num: '', name: '', g: 'M' },  // g: 'M' = hombre, 'F' = mujer
   bulk: ''
 };

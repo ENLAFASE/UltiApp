@@ -4,6 +4,7 @@ import { store, save, cfg, DEF_CFG } from '../almacen.js';
 import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
 import { teamName } from '../modelos/eventos.js';
+import { P, label } from '../modelos/jugador.js';
 import { uid, slug, fileStamp } from '../util/formato.js';
 import { exportFile, statsCSV, eventsCSV } from '../util/exportar.js';
 import { render, toast } from './render.js';
@@ -30,7 +31,30 @@ function cronometro(a) {
     render();
   }
 }
+/* ---------- proporción: mantener presionado 1 segundo para cambiarla ---------- */
+let presionTimer = null, presionBoton = null;
+function soltarPresion() {
+  clearTimeout(presionTimer); presionTimer = null;
+  if (presionBoton) presionBoton.classList.remove('pressing');
+  presionBoton = null;
+}
+function presionarRatio(b) {
+  soltarPresion();
+  presionBoton = b; b.classList.add('pressing');
+  presionTimer = setTimeout(function () {
+    presionTimer = null;
+    ui.ratioSwap = !ui.ratioSwap;
+    // Evita que al soltar el dedo se cuente además como un toque normal.
+    ui.ignoreClickUntil = performance.now() + 800;
+    try { if (navigator.vibrate) navigator.vibrate(40); } catch (e) {}
+    toast('Proporción cambiada');
+    render();
+  }, 1000);
+}
+
 function alPresionar(ev) {
+  const r = ev.target.closest('[data-a="swapRatio"]');
+  if (r) { presionarRatio(r); return; }
   const b = ev.target.closest('[data-a="hang"],[data-a="hangStop"]'); if (!b) return;
   ev.preventDefault();
   cronometro(b.getAttribute('data-a'));
@@ -62,7 +86,12 @@ function alTocar(ev) {
     case 'suggest': suggestLine(s); break;
     case 'openWhy': ui.modal = { kind: 'why', title: '¿Por qué esta línea?' }; break;
     case 'clearSel': ui.sel = []; ui.sug = null; break;
-    case 'swapRatio': ui.ratioSwap = !ui.ratioSwap; break;
+    case 'swapRatio':
+      // Con teclado (Enter) se cambia directo; con el dedo hay que mantener presionado.
+      soltarPresion();
+      if (ev.detail === 0) { ui.ratioSwap = !ui.ratioSwap; break; }
+      toast('Mantén presionado 1 segundo para cambiar la proporción');
+      break;
     case 'confirmLine': {
       if (!ui.sel.length) return;
       const avisos = revisarLinea(s);
@@ -167,23 +196,33 @@ function alTocar(ev) {
       let n = 0;
       ui.bulk.split(/\n/).forEach(function (line) {
         line = line.trim(); if (!line) return;
-        const mm = line.match(/^(\d+)\s*(.*?)(?:\s+([MFmf]))?$/); if (!mm) return;
-        store.roster.push({ id: uid(), num: mm[1], name: (mm[2] || '').trim(), g: (mm[3] || 'M').toUpperCase() });
+        // Letra final: H = hombre, M = mujer (también se acepta F = mujer).
+        // Internamente se guarda 'M' para hombre y 'F' para mujer.
+        const mm = line.match(/^(\d+)\s*(.*?)(?:\s+([HMFhmf]))?$/); if (!mm) return;
+        const letra = (mm[3] || 'H').toUpperCase();
+        store.roster.push({ id: uid(), num: mm[1], name: (mm[2] || '').trim(), g: letra === 'H' ? 'M' : 'F' });
         n++;
       });
       save(); ui.bulk = ''; toast(n + ' jugadores agregados');
       break;
     }
-    // evaluación privada de jugadores (coach)
-    case 'evOpen': ui.modal = { kind: 'eval', id: id, title: 'Evaluar jugador' }; break;
+
+    // editar jugador y evaluación privada (coach)
+    case 'editP': ui.modal = { kind: 'player', id: id, title: 'Editar jugador' }; break;
+    case 'peG': { const p = P(id); if (p) { p.g = v; save(); } break; }
     case 'evSet': {
-      const p = store.roster.find(function (x) { return x.id === id; }); if (!p) break;
+      const p = P(id); if (!p) break;
       p.ev = p.ev || {};
       p.ev[b.getAttribute('data-k')] = +v;
       save();
       break;
     }
-    case 'delP': store.roster = store.roster.filter(function (p) { return p.id !== id; }); save(); break;
+    case 'askDelP': {
+      const p = P(id); if (!p) break;
+      ui.modal = { kind: 'confirm', title: '¿Quitar a ' + label(id) + '?', text: 'Se borra del plantel junto con su evaluación.' + (store.game ? ' Sus estadísticas del partido en curso dejarán de mostrarse.' : ''), ok: 'Quitar', action: 'delP', id: id };
+      break;
+    }
+    case 'delP': store.roster = store.roster.filter(function (p) { return p.id !== id; }); ui.modal = null; save(); toast('Jugador quitado'); break;
     case 'firstPull': store.cfg.firstPull = v; save(); break;
     case 'startGame':
       if (!store.roster.length) return;
@@ -217,7 +256,18 @@ function alCambiar(ev) {
 
 // Texto que se va escribiendo (se guarda sin redibujar para no perder el cursor).
 function alEscribir(ev) {
-  const el = ev.target, k = el.getAttribute('data-in'); if (!k) return;
+  const el = ev.target;
+  // Datos de un jugador en la ventana de edición: se guardan mientras se escribe.
+  const campo = el.getAttribute('data-pe');
+  if (campo) {
+    const p = P(el.getAttribute('data-id')); if (!p) return;
+    const valor = el.value.trim();
+    if (campo === 'num' && !valor) return; // el número no puede quedar vacío
+    p[campo] = valor;
+    save();
+    return;
+  }
+  const k = el.getAttribute('data-in'); if (!k) return;
   if (k === 'npNum') ui.newP.num = el.value;
   else if (k === 'npName') ui.newP.name = el.value;
   else if (k === 'bulk') ui.bulk = el.value;
@@ -225,6 +275,10 @@ function alEscribir(ev) {
 
 export function conectarControles(app) {
   app.addEventListener('pointerdown', alPresionar);
+  app.addEventListener('pointerup', soltarPresion);
+  app.addEventListener('pointercancel', soltarPresion);
+  // Evita el menú del navegador al mantener presionado el cuadro de proporción.
+  app.addEventListener('contextmenu', function (ev) { if (ev.target.closest('[data-a="swapRatio"]')) ev.preventDefault(); });
   app.addEventListener('click', alTocar);
   app.addEventListener('change', alCambiar);
   app.addEventListener('input', alEscribir);

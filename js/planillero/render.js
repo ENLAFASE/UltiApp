@@ -6,9 +6,8 @@ import { derive } from '../modelos/partido.js';
 import { esc } from '../util/formato.js';
 import { viewGame } from './juego.js';
 import { viewSummary } from './resumen.js';
-import { viewSettings } from './ajustes.js';
+import { viewSettings, modalJugador } from './ajustes.js';
 import { modalPorQue } from './linea.js';
-import { modalEvaluar } from '../coach/evaluacion.js';
 
 const app = document.getElementById('app');
 
@@ -58,10 +57,10 @@ function modalHTML() {
       '<button class="btn full" data-a="closeModal">Cancelar</button>';
   } else if (m.kind === 'why') {
     h += modalPorQue();
-  } else if (m.kind === 'eval') {
-    h += modalEvaluar(m.id);
+  } else if (m.kind === 'player') {
+    h += modalJugador(m.id);
   } else if (m.kind === 'confirm') {
-    h += '<h2 class="h2 disp">' + esc(m.title) + '</h2><p style="margin:0">' + esc(m.text) + '</p><div class="grid2"><button class="btn" data-a="closeModal">' + esc(m.cancel || 'Cancelar') + '</button><button class="btn ' + (m.okClass || 'danger') + '" data-a="' + m.action + '">' + esc(m.ok) + '</button></div>';
+    h += '<h2 class="h2 disp">' + esc(m.title) + '</h2><p style="margin:0">' + esc(m.text) + '</p><div class="grid2"><button class="btn" data-a="closeModal">' + esc(m.cancel || 'Cancelar') + '</button><button class="btn ' + (m.okClass || 'danger') + '" data-a="' + m.action + '"' + (m.id ? ' data-id="' + m.id + '"' : '') + '>' + esc(m.ok) + '</button></div>';
   } else if (m.kind === 'text') {
     h += '<h2 class="h2 disp">' + esc(m.title) + '</h2><p class="muted" style="margin:0">La descarga no está disponible aquí. Copia el contenido y pégalo en una hoja de cálculo.</p><textarea readonly id="exptxt">' + esc(m.text) + '</textarea><div class="grid2"><button class="btn" data-a="closeModal">Cerrar</button><button class="btn fill" data-a="copyTxt">Copiar</button></div>';
   }

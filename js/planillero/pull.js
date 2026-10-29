@@ -5,7 +5,7 @@
 // Al elegir dentro/fuera se guarda el pull y se pasa directo al juego.
 import { store, cfg } from '../almacen.js';
 import { ui } from '../ui.js';
-import { short } from '../modelos/jugador.js';
+import { P, short, htmlBoton } from '../modelos/jugador.js';
 import { esc } from '../util/formato.js';
 
 export function quienSaca(s) { return s.offense === 'us' ? 'them' : 'us'; }
@@ -31,8 +31,7 @@ export function viewPull(s) {
   if (pu.step === 'player') {
     h += '<p class="q disp">¿Quién saca el pull?</p><div class="pgrid" style="--cols:2">';
     s.line.forEach(function (id) {
-      const p = store.roster.find(function (x) { return x.id === id; });
-      h += '<button class="pb" data-a="pullPlayer" data-id="' + id + '"><span class="num disp">' + esc(short(id)) + '</span><span class="nom">' + esc(p ? p.name : '') + '</span></button>';
+      h += '<button class="pb" data-a="pullPlayer" data-id="' + id + '">' + htmlBoton(P(id)) + '</button>';
     });
     h += '</div><div class="mini"><button class="btn" data-a="undo">Editar línea</button><button class="btn" data-a="pullPlayer">Sin registrar</button></div>';
 

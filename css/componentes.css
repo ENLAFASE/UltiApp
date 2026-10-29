@@ -118,7 +118,13 @@ tr:last-child td{border-bottom:none}
 .pb .nom{font-size:13px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pb .meta{font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap}
 .pb .g{position:absolute;top:4px;right:7px;font-size:11px;font-weight:700;color:var(--muted)}
+/* Nombre abreviado (3 letras) grande y número chico */
+.pb .ab{font-size:24px;line-height:1;max-width:100%;white-space:nowrap;overflow:hidden}
+.pb .sub{font-size:12px;font-weight:600;color:var(--muted);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pb.rep{border-style:dashed}
+/* Letra de género: H (hombre) y M (mujer) */
+.g.H,.gH{color:var(--hom-ink);font-weight:700}
+.g.M,.gM{color:var(--muj-ink);font-weight:700}
 .pb[aria-pressed="true"]{border:3px solid var(--us);background:var(--us-soft);padding:2px 8px}
 .pb[aria-pressed="true"]:disabled{opacity:1;cursor:default}
 
@@ -138,6 +144,12 @@ tr:last-child td{border-bottom:none}
 .aviso.why b{color:var(--us);flex:none}
 .item .grow{flex:1;min-width:0}
 
+/* Plantel: cada jugador es un botón que abre su edición */
+.item.plantel{width:100%;background:var(--bg);text-align:left;font-weight:400;cursor:pointer;min-height:56px}
+.item.plantel.sin-ev{border-left:6px solid var(--them);background:var(--them-soft)}
+.pill.warn{background:var(--them);color:var(--on-them);margin-top:2px}
+.txt-warn{color:var(--them)}
+
 /* Evaluación de jugadores */
 .ev-fila{display:flex;flex-direction:column;gap:6px;padding:6px 0;border-bottom:1px solid var(--line)}
 .ev-fila > div:first-child{display:flex;flex-direction:column}
@@ -152,7 +164,15 @@ tr:last-child td{border-bottom:none}
 .modo small{font-size:12px;font-weight:600;opacity:.9}
 .modo.at{background:var(--us);color:var(--on-us)}
 .modo.df{background:var(--them);color:var(--on-them)}
-.modo.ratio{background:var(--surface);border-color:var(--line);color:var(--ink)}
+.modo.ratio{background:var(--surface);border-color:var(--line);color:var(--ink);position:relative;overflow:hidden;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+/* Color según el género que predomina en el punto */
+.modo.ratio.hom{background:var(--hom);border-color:var(--hom);color:#fff}
+.modo.ratio.muj{background:var(--muj);border-color:var(--muj);color:#fff}
+.modo.ratio .hint{font-size:11px;font-weight:500;opacity:.85}
+/* Barra que se llena mientras se mantiene presionado (1 segundo) */
+.modo.ratio::after{content:"";position:absolute;left:0;bottom:0;height:6px;width:0;background:#fff}
+.modo.ratio.pressing::after{width:100%;transition:width 1s linear}
 
 /* Franja que dice en qué momento del juego estamos */
 .paso-h{flex:none;display:flex;align-items:baseline;gap:10px;padding:6px 12px;border-radius:10px;background:var(--us);color:var(--on-us);font-size:14px;font-weight:600;min-width:0}

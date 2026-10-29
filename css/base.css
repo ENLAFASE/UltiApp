@@ -6,6 +6,8 @@
   --them:#B45309; --on-them:#FFFFFF; --them-soft:#FFF4E5;
   --head:#0B0F17; --head-ink:#FFFFFF; --head-muted:#D1D5DB;
   --danger:#B91C1C;
+  /* Género: fondos fuertes con texto blanco (buen contraste a pleno sol) */
+  --hom:#0E7490; --muj:#A21CAF; --hom-ink:#0E7490; --muj-ink:#A21CAF;
   color-scheme: light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -18,6 +20,7 @@
     --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
     --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
     --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+    --hom-ink:#67E8F9; --muj-ink:#F0ABFC;
     color-scheme: dark;
   }
 }
@@ -26,6 +29,7 @@
   --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
   --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
   --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+  --hom-ink:#67E8F9; --muj-ink:#F0ABFC;
   color-scheme: dark;
 }
 *,*::before,*::after{box-sizing:border-box}

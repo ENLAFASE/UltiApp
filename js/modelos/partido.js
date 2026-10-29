@@ -40,7 +40,8 @@ export function ratioFor(pointIdx) {
   return r;
 }
 export function reqCounts(r) { return r === '4M3F' ? { M: 4, F: 3 } : { M: 3, F: 4 }; }
-export function ratioText(r) { return r === '4M3F' ? '4 masc. / 3 fem.' : '3 masc. / 4 fem.'; }
+// Internamente '4M3F' = 4 hombres y 3 mujeres; '3M4F' = 3 hombres y 4 mujeres.
+export function ratioText(r) { return r === '4M3F' ? '4 hombres / 3 mujeres' : '3 hombres / 4 mujeres'; }
 
 /* ---------- calcular el estado repasando los eventos ---------- */
 // s.offense = equipo que RECIBE el pull del punto (el otro lo saca).
