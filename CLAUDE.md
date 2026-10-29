@@ -20,7 +20,7 @@ El dueño del proyecto no es programador profesional. Explicar cada paso de form
 - Todo el registro del partido: línea con proporción mixta ABBA, pull (quién saca, tiempo de vuelo, dentro/fuera), recepción y pases, goles, asistencias, turnovers, defensas, llamados (equipo que llama, tipo, resolución, posesión), timeouts con cuenta regresiva.
 - Evaluación **privada** de jugadores, 1 a 5 en: manejo, corte de avance, corte de gol y defensa (`js/coach/evaluacion.js`).
 - Recomendador de líneas que **explica** por qué sugiere cada jugador (`js/coach/recomendador.js`), con tres criterios:
-  - **Competencia:** el mayor nivel posible; según el marcador: empatados o perdiendo → máximo nivel; ganando por poco → nivel alto con algo de descanso; ganando por 3 o más → rotación con minutos para el nivel más bajo.
+  - **Competencia:** siempre asegura la columna vertical (manejo, corte de avance y corte de gol buenos) y completa según el marcador: empatados o perdiendo → máximo nivel; ganando por poco → nivel alto con algo de descanso; ganando por el margen para rotar (`cfg.compMargin`, en Ajustes, por defecto 3) o más → rotación con minutos para el nivel más bajo. Nunca pone a los 7 de menor nivel.
   - **Amistoso:** rota, pero asegura una columna vertical de 3: un manejo, un corte de avance y un corte de gol principales (nota 4 o más).
   - **Entrenamiento:** rotación pareja (descansó el punto anterior, menos puntos jugados).
   - Siempre 7 jugadores y respetando la proporción de géneros si es mixto. En ataque pesa más lo ofensivo; en defensa, la defensa.

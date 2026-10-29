@@ -16,6 +16,7 @@ export const DEF_CFG = {
   hardCap: 0,           // duración total del partido, en minutos (0 = sin límite)
   firstPull: 'us',      // quién saca el primer pull
   lineMode: 'competencia', // criterio de sugerencia: 'competencia', 'amistoso' o 'entrenamiento'
+  compMargin: 3,        // en Competencia, ventaja desde la que se rota
   mixed: true, startRatio: '4M3F', abba: true
 };
 

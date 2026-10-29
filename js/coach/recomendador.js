@@ -1,7 +1,8 @@
 // Recomendador de líneas. Completa la línea hasta 7 según el criterio elegido
 // en Ajustes y explica por qué eligió a cada jugador.
 //
-//   Competencia:   el mayor nivel posible; si vamos ganando por mucho, rota
+//   Competencia:   siempre asegura la columna vertical y completa con el mayor
+//                  nivel posible; si vamos ganando por el margen o más, rota
 //                  y da minutos a jugadores de menor nivel.
 //   Amistoso:      rota, pero asegura una columna vertical: un manejo, un
 //                  corte de avance y un corte de gol principales.
@@ -13,13 +14,15 @@ import { store, cfg } from '../almacen.js';
 import { ev, nivel, evaluado } from './evaluacion.js';
 
 export const MODOS = {
-  competencia: { nombre: 'Competencia', ayuda: 'Busca el mayor nivel en cancha. Si vamos ganando por 3 o más, rota y da minutos a jugadores de menor nivel.' },
+  competencia: { nombre: 'Competencia', ayuda: 'Siempre asegura un buen manejo, corte de avance y corte de gol, y completa con el mayor nivel posible. Si vamos ganando por el margen para rotar o más, da minutos a jugadores de menor nivel.' },
   amistoso: { nombre: 'Amistoso', ayuda: 'Rota a todos, pero asegura un buen manejo, un buen corte de avance y un buen corte de gol en cada punto.' },
   entrenamiento: { nombre: 'Entrenamiento', ayuda: 'Rotación pareja: entra quien descansó el punto anterior y lleva menos puntos jugados.' }
 };
-export const MARGEN_ROTAR = 3;
 
-// Roles de la columna vertical que asegura el modo amistoso.
+// Diferencia de puntos desde la que Competencia empieza a rotar (Ajustes).
+export function margenRotar() { return cfg().compMargin || 3; }
+
+// Roles de la columna vertical que aseguran Competencia y Amistoso.
 const ROLES = [
   { k: 'man', nombre: 'Manejo principal', corto: 'Manejo' },
   { k: 'av', nombre: 'Corte de avance principal', corto: 'Corte de avance' },
@@ -70,27 +73,11 @@ export function recomendarLinea(s, req, elegidos) {
     }
   }
 
-  let resumen;
-  if (modo === 'competencia') {
-    const dif = s.us - s.them;
-    let puntaje;
-    if (dif >= MARGEN_ROTAR) {
-      resumen = 'Ganamos por ' + dif + ': rotación, minutos para nivel más bajo.';
-      puntaje = function (p) { return (5 - nivel(p, ataque)) + (descanso(p) ? 1 : 0) - 0.05 * pts(p); };
-    } else if (dif > 0) {
-      resumen = 'Ganamos por ' + dif + ': nivel alto, con algo de descanso.';
-      puntaje = function (p) { return nivel(p, ataque) + (descanso(p) ? 0.8 : 0); };
-    } else {
-      resumen = (dif === 0 ? 'Empatados' : 'Perdemos por ' + (-dif)) + ': el mayor nivel posible.';
-      puntaje = function (p) { return nivel(p, ataque) + (descanso(p) ? 0.3 : 0); };
-    }
-    resumen = 'Competencia · ' + resumen;
-    completar(function (a, b) { return (puntaje(b) - puntaje(a)) || porRotacion(a, b); }, function (p) {
-      return 'Nivel ' + n1(nivel(p, ataque)) + (ataque ? ' en ataque' : ' en defensa') + (primerPunto ? '' : ' · ' + txtDescanso(p));
-    });
-
-  } else if (modo === 'amistoso') {
-    resumen = 'Amistoso · rota, con manejo, corte de avance y corte de gol asegurados.';
+  // Asegura la columna vertical: un manejo, un corte de avance y un corte de gol
+  // buenos (nota 4 o más, o la mejor disponible).
+  //   rotar = true:  entre los buenos, entra quien descansó y lleva menos puntos.
+  //   rotar = false: entra el de mejor nota en el rol (empate: quien descansó).
+  function asegurarEstructura(rotar) {
     ROLES.forEach(function (rol) {
       // ¿Ya hay alguien bueno en ese rol entre los elegidos?
       const yaEsta = sel.some(function (id) {
@@ -104,11 +91,40 @@ export function recomendarLinea(s, req, elegidos) {
       const mejor = Math.max.apply(null, cands.map(function (p) { return ev(p)[rol.k]; }));
       const umbral = Math.min(4, mejor);
       const buenos = cands.filter(function (p) { return ev(p)[rol.k] >= umbral; });
-      // Entre los buenos, rota: primero quien descansó y lleva menos puntos.
-      buenos.sort(function (a, b) { return porRotacion(a, b) || (ev(b)[rol.k] - ev(a)[rol.k]); });
+      buenos.sort(function (a, b) {
+        const nota = ev(b)[rol.k] - ev(a)[rol.k];
+        return rotar ? (porRotacion(a, b) || nota) : (nota || porRotacion(a, b));
+      });
       const p = buenos[0];
       tomar(p, rol.nombre + ' (' + rol.corto + ' ' + ev(p)[rol.k] + ')' + (primerPunto ? '' : ' · ' + txtDescanso(p)));
     });
+  }
+
+  let resumen;
+  if (modo === 'competencia') {
+    const dif = s.us - s.them, margen = margenRotar();
+    let puntaje, rotar = false;
+    if (dif >= margen) {
+      rotar = true;
+      resumen = 'Ganamos por ' + dif + ': estructura asegurada y minutos para nivel más bajo.';
+      puntaje = function (p) { return (5 - nivel(p, ataque)) + (descanso(p) ? 1 : 0) - 0.05 * pts(p); };
+    } else if (dif > 0) {
+      resumen = 'Ganamos por ' + dif + ': nivel alto, con algo de descanso.';
+      puntaje = function (p) { return nivel(p, ataque) + (descanso(p) ? 0.8 : 0); };
+    } else {
+      resumen = (dif === 0 ? 'Empatados' : 'Perdemos por ' + (-dif)) + ': el mayor nivel posible.';
+      puntaje = function (p) { return nivel(p, ataque) + (descanso(p) ? 0.3 : 0); };
+    }
+    resumen = 'Competencia · ' + resumen;
+    // La estructura va siempre primero, aunque vayamos ganando por mucho.
+    asegurarEstructura(rotar);
+    completar(function (a, b) { return (puntaje(b) - puntaje(a)) || porRotacion(a, b); }, function (p) {
+      return 'Nivel ' + n1(nivel(p, ataque)) + (ataque ? ' en ataque' : ' en defensa') + (primerPunto ? '' : ' · ' + txtDescanso(p));
+    });
+
+  } else if (modo === 'amistoso') {
+    resumen = 'Amistoso · rota, con manejo, corte de avance y corte de gol asegurados.';
+    asegurarEstructura(true);
     completar(porRotacion, textoRotacion);
 
   } else {

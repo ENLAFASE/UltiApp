@@ -46,6 +46,9 @@ export function viewSettings() {
   h += '<div class="field"><label class="lbl" for="f_lineMode">Criterio</label><select id="f_lineMode" data-cfg="lineMode">' +
     Object.keys(MODOS).map(function (k) { return '<option value="' + k + '"' + (k === modo ? ' selected' : '') + '>' + MODOS[k].nombre + '</option>'; }).join('') +
     '</select><span class="muted">' + MODOS[modo].ayuda + '</span></div>';
+  if (modo === 'competencia') {
+    h += numField('compMargin', 'Margen para rotar (puntos)', 'Si vamos ganando por esta diferencia o más, entra más rotación. Mínimo 1.');
+  }
 
   // plantel
   const sinEv = store.roster.filter(function (p) { return !evaluado(p); }).length;
