@@ -1,13 +1,21 @@
 /* Colores, tipografía y reglas generales de la página.
-   Los colores se definen una vez aquí y el resto de la app los usa por nombre. */
+   Identidad Húsares: carbón + naranja/ámbar (como el escudo).
+   Los colores se definen una vez aquí y el resto de la app los usa por nombre:
+     --us    = nuestro equipo (naranja Húsares)
+     --them  = rival (grafito neutro)
+     --warn  = avisos (ámbar), separado del rival
+     --acc   = acento ámbar (pestaña activa, detalles) */
 :root{
-  --bg:#FFFFFF; --surface:#F2F4F7; --ink:#0B0F17; --muted:#4B5563; --line:#C5CAD3;
-  --us:#1D4ED8; --on-us:#FFFFFF; --us-soft:#EFF4FF;
-  --them:#B45309; --on-them:#FFFFFF; --them-soft:#FFF4E5;
-  --head:#0B0F17; --head-ink:#FFFFFF; --head-muted:#D1D5DB;
+  --bg:#FAF9F7; --surface:#EFECE7; --ink:#1B1B1D; --muted:#5C5A56; --line:#D4CFC7;
+  --us:#C4300A; --on-us:#FFFFFF; --us-soft:#FFEDE5;
+  --them:#3B414C; --on-them:#FFFFFF; --them-soft:#E9EBEE;
+  --warn:#9A5800; --on-warn:#FFFFFF; --warn-soft:#FFF2D6;
+  --acc:#FFAA00; --orange:#FF4517;
+  --head:#1B1B1D; --head-ink:#EFEEEC; --head-muted:#B5B3AF; --head-line:#3A3A3D;
   --danger:#B91C1C;
   /* Género: fondos fuertes con texto blanco (buen contraste a pleno sol) */
   --hom:#0E7490; --muj:#A21CAF; --hom-ink:#0E7490; --muj-ink:#A21CAF;
+  --display:"Teko","Barlow Condensed","Arial Narrow",sans-serif;
   color-scheme: light;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px);
@@ -16,30 +24,36 @@
 /* Modo oscuro: automático según el teléfono */
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#0E1116; --surface:#1A1F27; --ink:#F3F4F6; --muted:#A7AFBC; --line:#353C48;
-    --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
-    --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
-    --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+    --bg:#141416; --surface:#232326; --ink:#EFEEEC; --muted:#A6A5A2; --line:#3A3A3D;
+    --us:#FF5A1F; --on-us:#160A04; --us-soft:#3A1A0E;
+    --them:#C9CCD2; --on-them:#141416; --them-soft:#2A2C31;
+    --warn:#FFB224; --on-warn:#1B1B1D; --warn-soft:#3A2B0B;
+    --head:#0E0E10; --head-ink:#EFEEEC; --head-muted:#A6A5A2; --head-line:#333336;
+    --danger:#F87171;
     --hom-ink:#67E8F9; --muj-ink:#F0ABFC;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#0E1116; --surface:#1A1F27; --ink:#F3F4F6; --muted:#A7AFBC; --line:#353C48;
-  --us:#7EA6FF; --on-us:#0B0F17; --us-soft:#172544;
-  --them:#F2A55A; --on-them:#0B0F17; --them-soft:#3A2712;
-  --head:#05070A; --head-ink:#F3F4F6; --head-muted:#A7AFBC; --danger:#F87171;
+  --bg:#141416; --surface:#232326; --ink:#EFEEEC; --muted:#A6A5A2; --line:#3A3A3D;
+  --us:#FF5A1F; --on-us:#160A04; --us-soft:#3A1A0E;
+  --them:#C9CCD2; --on-them:#141416; --them-soft:#2A2C31;
+  --warn:#FFB224; --on-warn:#1B1B1D; --warn-soft:#3A2B0B;
+  --head:#0E0E10; --head-ink:#EFEEEC; --head-muted:#A6A5A2; --head-line:#333336;
+  --danger:#F87171;
   --hom-ink:#67E8F9; --muj-ink:#F0ABFC;
   color-scheme: dark;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{margin:0;background:var(--bg);color:var(--ink)}
-body{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+body{font-family:Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 button:disabled{opacity:.45;cursor:not-allowed}
-:focus-visible{outline:3px solid var(--us);outline-offset:2px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 .disp{font-family:"Barlow Condensed","Arial Narrow",Arial,sans-serif;font-weight:700;letter-spacing:.02em}
+/* Números grandes y títulos con la letra del escudo (Teko). Teko queda alta: se compensa arriba. */
+.num-d{font-family:var(--display);font-weight:600;letter-spacing:.01em;font-variant-numeric:tabular-nums;padding-top:.08em}
 #app{max-width:520px;margin:0 auto;min-height:100%;padding-bottom:84px}
 a{color:var(--us)}

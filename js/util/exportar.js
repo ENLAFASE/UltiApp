@@ -39,6 +39,9 @@ export function statsCSV(s) {
 // Descarga el archivo. Si el navegador no lo permite, llama a siNoSePuede
 // para mostrar el texto y que se pueda copiar a mano.
 export function exportFile(name, text, siNoSePuede) {
+  // Dentro de una página incrustada (por ejemplo, la copia publicada en Claude)
+  // las descargas están bloqueadas: se muestra el texto para copiarlo.
+  if (window.self !== window.top) { siNoSePuede(name, text); return false; }
   try {
     // El carácter ﻿ al inicio hace que Excel lea bien las tildes y la ñ.
     const blob = new Blob(['﻿' + text], { type: 'text/csv;charset=utf-8' });

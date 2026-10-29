@@ -58,9 +58,10 @@ UltiApp/
 ├── css/
 │   ├── base.css              # colores (claro/oscuro), tipografía
 │   └── componentes.css       # botones, tarjetas, marcador, pestañas
-├── icons/                    # íconos PNG (los genera herramientas/generar_iconos.py)
+├── icons/                    # íconos PNG con el escudo Húsares (diseño UX, 2026-10-29)
+├── img/                      # escudo Húsares (husares.png grande, husares-escudo.png chico)
 ├── herramientas/
-│   └── generar_iconos.py     # crea los íconos solo con Python
+│   └── generar_iconos.py     # creaba los íconos genéricos del disco (ya reemplazados por el escudo)
 └── js/
     ├── app.js                # arranque: conecta botones, dibuja, registra el service worker
     ├── almacen.js            # datos guardados: cfg, plantel, partido (localStorage 'ufs-v1')
@@ -78,6 +79,7 @@ UltiApp/
     │   └── eventos.js        # tipos de llamado, resoluciones, describe(evento)
     ├── planillero/
     │   ├── render.js         # dibuja la pestaña activa, ventanas y avisos
+    │   ├── encabezado.js     # escudo, encabezados con marca e íconos de la barra inferior
     │   ├── controles.js      # qué hace cada botón (data-a="...")
     │   ├── acciones.js       # agregar / deshacer eventos
     │   ├── reloj.js          # reloj del partido y pantalla encendida
@@ -107,12 +109,21 @@ Las pantallas del partido están en `js/planillero/` por razones históricas, pe
 - **Jugadores en pantalla:** nombre abreviado a 3 letras en grande ("Rod"), número chico debajo (`htmlBoton` en `js/modelos/jugador.js`).
 - **Género:** en pantalla H = hombre y M = mujer. Internamente sigue 'M' = hombre y 'F' = mujer (datos antiguos). Colores: `--hom` (petróleo) y `--muj` (fucsia), con texto blanco.
 - **Proporción:** el cuadro toma el color del género que predomina y se cambia solo manteniendo presionado 1 segundo.
-- **Barra inferior:** 2 bloques, "Partido / Resumen" y "Ajustes / Plantel"; la vista actual con letra más grande.
+- **Barra inferior:** 4 pestañas con ícono (Partido, Resumen, Plantel, Ajustes), propuesta de la diseñadora UX aceptada por el usuario el 2026-10-29 (reemplaza los 2 bloques anteriores).
 - **Línea:** solo convocados; cada botón muestra puntos y minutos jugados ("3p 6'"). Con 7 marcados, el lugar de "Sugerir" muestra la tarjeta de la línea (nivel, mejor manejo/avance/gol, desgaste).
 - **Plantel (pestaña propia):** visión de la evaluación (puntaje global, por posición, ranking, alertas), convocados y no convocados (deslizar a la derecha para cambiar; la categoría femenino/open marca sola al otro género), edición al tocar, carga por texto `36 Enzo H man5 av5 gol3 def3` y copia de respaldo en el mismo formato. Campos por jugador: `noConv`, `noConvAuto` (marcado por la categoría).
 - **Tipo de partido:** `cfg.division` = mixto / open / femenino; `cfg.mixed` se mantiene sincronizado (true solo en mixto).
 - **Medio tiempo:** `cfg.halfMode` = first (lo que ocurra primero) / points / time.
 - **Llamado:** pantalla completa con 4 pasos numerados (qué equipo llama, tipo, resolución, posesión). No se registra el jugador que llama.
+
+### Identidad visual (propuesta UX Húsares, aceptada el 2026-10-29)
+
+- Colores en `css/base.css`: `--us` naranja Húsares (nuestro equipo), `--them` grafito (rival), `--warn` ámbar (avisos, separado del rival), `--acc` ámbar de acento. No reutilizar `--them` para avisos.
+- Letras: Teko (`--display`, clase `.num-d`) para marcador, reloj y títulos; Barlow para el texto; botones grandes en mayúsculas.
+- El escudo solo aparece si el equipo se llama "Húsares" (`esHusares()` en `encabezado.js`), para que la app siga sirviendo a otros clubes.
+- Ajustes: tarjeta "Preparar partido" (rival, 7+ convocados, primer pull), secciones plegables (`ui.abiertos`) y botón "Empezar partido" fijo abajo.
+- Primer uso guiado: sin jugadores, la app abre en Partido con "Armar plantel".
+- Resumen: destacados (goles, asistencias, blocks) y columna de nombres fija en la tabla.
 
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
 

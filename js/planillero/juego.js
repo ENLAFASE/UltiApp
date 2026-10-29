@@ -8,6 +8,7 @@ import { teamName } from '../modelos/eventos.js';
 import { P, label, abrev, htmlBoton } from '../modelos/jugador.js';
 import { esc, fmtCuenta } from '../util/formato.js';
 import { header, chainHTML } from './marcador.js';
+import { escudo } from './encabezado.js';
 import { viewLine } from './linea.js';
 import { viewPull } from './pull.js';
 import { viewCall } from './llamados.js';
@@ -86,7 +87,13 @@ function viewEnded(s) {
 }
 
 export function viewGame() {
-  if (!store.game) return '<div class="empty"><h2 class="h2 disp">No hay partido en curso</h2><p class="muted" style="margin:0">Configura el partido y el plantel para empezar.</p><button class="btn fill" data-a="tab" data-v="settings">Preparar partido</button></div>';
+  if (!store.game) {
+    const n = store.roster.filter(function (p) { return !p.noConv; }).length;
+    return '<div class="empty">' + escudo('crest-xl') + '<h2 class="h2 disp">No hay partido en curso</h2>' +
+      '<p class="muted" style="margin:0">' + (n ? n + ' convocados listos. Revisa el rival y quién saca el primer pull.' : 'Primero arma el plantel; después define el rival y empieza.') + '</p>' +
+      (n ? '<button class="btn big fill disp" data-a="tab" data-v="settings">Preparar partido</button>'
+         : '<button class="btn big fill disp" data-a="tab" data-v="roster">Armar plantel</button>') + '</div>';
+  }
   const s = derive();
   // El llamado ocupa toda la pantalla (sin marcador) para que quepa completo.
   if (ui.view === 'call' && s.phase === 'play') return viewCall(s);

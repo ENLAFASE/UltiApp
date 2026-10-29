@@ -5,7 +5,7 @@
 const KEY = 'ufs-v1';
 
 export const DEF_CFG = {
-  club: 'Mi Club', rival: 'Rival',
+  club: 'Húsares', rival: 'Rival',
   pointsToWin: 15,
   // Medio tiempo: 'points' (por puntos), 'time' (por minutos) o
   // 'first' (lo que ocurra primero: los puntos o, cumplido el tiempo, al terminar el punto).

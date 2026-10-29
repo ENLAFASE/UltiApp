@@ -118,6 +118,7 @@ function alTocar(ev) {
     case 'tab': ui.tab = v; ui.modal = null; window.scrollTo(0, 0); break;
     case 'undo': undo(); return;
     case 'closeModal': ui.modal = null; break;
+    case 'secc': ui.abiertos[v] = !ui.abiertos[v]; break;
 
     // línea
     case 'selP': {

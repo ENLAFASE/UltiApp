@@ -7,6 +7,7 @@ import { esc } from '../util/formato.js';
 import { HABILIDADES, ev, evaluado, resumenEv, filasEvaluacion } from '../coach/evaluacion.js';
 import { ROLES, analizarPlantel, nivelGeneral, n1 } from '../criterio/metricas.js';
 import { PARAM } from '../criterio/parametros.js';
+import { encabezado } from './encabezado.js';
 
 /* ---------- texto del plantel: "36 Enzo H man5 av5 gol3 def3" ---------- */
 // Lee una línea de texto. Devuelve { num, name, g, ev } o null si no tiene número.
@@ -120,7 +121,13 @@ export function viewPlantel() {
   const c = cfg();
   const conv = porNumero(store.roster.filter(function (p) { return !p.noConv; }));
   const fuera = porNumero(store.roster.filter(function (p) { return p.noConv; }));
-  let h = '<header class="sb"><span class="title-h disp">Plantel</span></header><div class="pad stack">';
+  let h = encabezado('Plantel', store.roster.length ? conv.length + ' convocados de ' + store.roster.length : 'Sin jugadores todavía') + '<div class="pad stack">';
+  const vacio = !store.roster.length;
+  if (vacio) {
+    // Primer uso: lo único que sirve es agregar jugadores, así que va primero.
+    h += '<div class="card stack vacio"><span class="prep-h disp">Arma tu plantel</span>' +
+      '<span class="muted">Agrega jugadores uno por uno o pega la lista completa más abajo (una línea por jugador: número, nombre y H o M). La evaluación es opcional: la completas después tocando a cada jugador.</span></div>';
+  } else {
 
   h += visionPlantel(conv, c);
 
@@ -140,6 +147,7 @@ export function viewPlantel() {
     fuera.forEach(function (p) { h += filaJugador(p, c); });
     h += '</div>';
   }
+  }
 
   const np = ui.newP;
   h += '<h2 class="h2 disp">Agregar jugadores</h2>';
@@ -150,8 +158,8 @@ export function viewPlantel() {
     '<button class="btn fill" data-a="addP">Agregar</button></div>';
   h += '<div class="card stack"><label class="lbl" for="bulk">Agregar o actualizar varios: una línea por jugador</label>' +
     '<span class="muted">Número, nombre, H (hombre) o M (mujer) y, si quieres, la evaluación: <code>man</code> manejo, <code>av</code> corte de avance, <code>gol</code> corte de gol, <code>def</code> defensa (1 a 5). Si el número y el nombre ya existen, se actualiza ese jugador.</span>' +
-    '<textarea id="bulk" rows="4" data-in="bulk" placeholder="36 Enzo H man5 av5 gol3 def3&#10;12 Ana M man4 av3 gol4 def5">' + esc(ui.bulk) + '</textarea><button class="btn" data-a="addBulk">Agregar lista</button></div>';
-  if (store.roster.length) {
+    '<textarea id="bulk" rows="' + (vacio ? 8 : 4) + '" data-in="bulk" placeholder="36 Enzo H man5 av5 gol3 def3&#10;12 Ana M man4 av3 gol4 def5">' + esc(ui.bulk) + '</textarea><button class="btn" data-a="addBulk">Agregar lista</button></div>';
+  if (!vacio) {
     h += '<button class="btn full" data-a="copyRoster">Copiar plantel como texto (respaldo)</button>';
   }
   h += '</div>';

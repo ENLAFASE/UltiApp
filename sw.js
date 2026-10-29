@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE_APP = 'ultiapp-' + VERSION;
 const CACHE_FUENTES = 'ultiapp-fuentes';
 
@@ -19,6 +19,9 @@ const ARCHIVOS = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png',
+  'icons/favicon-64.png',
+  'img/husares.png',
+  'img/husares-escudo.png',
   'js/app.js',
   'js/almacen.js',
   'js/ui.js',
@@ -34,6 +37,7 @@ const ARCHIVOS = [
   'js/criterio/recomendador.js',
   'js/planillero/acciones.js',
   'js/planillero/ajustes.js',
+  'js/planillero/encabezado.js',
   'js/planillero/controles.js',
   'js/planillero/juego.js',
   'js/planillero/linea.js',

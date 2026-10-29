@@ -3,7 +3,7 @@
 import { store } from './almacen.js';
 
 export const ui = {
-  tab: store.game ? 'game' : 'settings',
+  tab: store.game || !store.roster.length ? 'game' : 'settings',
   view: null,          // 'call' mientras se registra un llamado
   sel: [],             // jugadores marcados para la línea
   selFor: null,
@@ -17,5 +17,6 @@ export const ui = {
   toast: null,
   ignoreClickUntil: 0, // evita toques "fantasma" justo después de cronometrar
   newP: { num: '', name: '', g: 'M' },  // g: 'M' = hombre, 'F' = mujer
-  bulk: ''
+  bulk: '',
+  abiertos: {}         // secciones abiertas en Ajustes (tiempos, motor, mapa)
 };

@@ -5,9 +5,10 @@ import { RES, RES_SHORT, teamName } from '../modelos/eventos.js';
 import { label, short, porNumero } from '../modelos/jugador.js';
 import { esc, fmt } from '../util/formato.js';
 import { header } from './marcador.js';
+import { escudo } from './encabezado.js';
 
 export function viewSummary() {
-  if (!store.game) return '<div class="empty"><h2 class="h2 disp">Sin datos todavía</h2><p class="muted" style="margin:0">El resumen aparece cuando empieza un partido.</p></div>';
+  if (!store.game) return '<div class="empty">' + escudo('crest-xl') + '<h2 class="h2 disp">Sin datos todavía</h2><p class="muted" style="margin:0">El resumen aparece cuando empieza un partido.</p></div>';
   const s = derive(), c = cfg();
   let h = header(s) + '<div class="pad stack">';
 
@@ -16,7 +17,19 @@ export function viewSummary() {
   const rows = porNumero(store.roster.filter(function (p) { return s.stats[p.id]; }));
   if (!rows.length) h += '<p class="muted">Aún no hay estadísticas de jugadores.</p>';
   else {
-    h += '<div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Min</th><th>Gol</th><th>Ast</th><th>Pases</th><th>Turn</th><th>Blk</th></tr></thead><tbody>';
+    // Destacados: quién lidera en goles, asistencias y blocks.
+    function lider(campo) {
+      let mejor = null;
+      rows.forEach(function (p) { const v = s.stats[p.id][campo]; if (v > 0 && (!mejor || v > mejor.v)) mejor = { p: p, v: v }; });
+      return mejor;
+    }
+    const dest = [['goals', 'Goles'], ['ast', 'Asistencias'], ['blk', 'Blocks']];
+    h += '<div class="dest">' + dest.map(function (d) {
+      const m = lider(d[0]);
+      return '<div class="dest-i"><span class="muted">' + d[1] + '</span>' +
+        (m ? '<span class="dest-v num-d">' + m.v + '</span><span class="dest-n">' + esc(short(m.p.id)) + '</span>' : '<span class="dest-v num-d">—</span><span class="dest-n muted">Nadie aún</span>') + '</div>';
+    }).join('') + '</div>';
+    h += '<div class="tbl-wrap fija"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Min</th><th>Gol</th><th>Ast</th><th>Pases</th><th>Turn</th><th>Blk</th></tr></thead><tbody>';
     rows.forEach(function (p) {
       const x = s.stats[p.id];
       h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pts + '</td><td>' + Math.round((x.ms || 0) / 60000) + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td><td>' + x.comp + '</td><td>' + (x.thr + x.drop + x.stall) + '</td><td>' + x.blk + '</td></tr>';
