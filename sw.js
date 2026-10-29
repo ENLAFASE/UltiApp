@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const CACHE_APP = 'ultiapp-' + VERSION;
 const CACHE_FUENTES = 'ultiapp-fuentes';
 

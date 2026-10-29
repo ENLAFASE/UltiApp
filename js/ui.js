@@ -18,5 +18,6 @@ export const ui = {
   ignoreClickUntil: 0, // evita toques "fantasma" justo después de cronometrar
   newP: { num: '', name: '', g: 'M' },  // g: 'M' = hombre, 'F' = mujer
   bulk: '',
+  copiaQue: 'todos',   // qué copiar como texto en Plantel: 'todos', 'conv' o 'noconv'
   abiertos: {}         // secciones abiertas en Ajustes (tiempos, motor, mapa)
 };

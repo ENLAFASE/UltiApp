@@ -160,7 +160,15 @@ export function viewPlantel() {
     '<span class="muted">Número, nombre, H (hombre) o M (mujer) y, si quieres, la evaluación: <code>man</code> manejo, <code>av</code> corte de avance, <code>gol</code> corte de gol, <code>def</code> defensa (1 a 5). Si el número y el nombre ya existen, se actualiza ese jugador.</span>' +
     '<textarea id="bulk" rows="' + (vacio ? 8 : 4) + '" data-in="bulk" placeholder="36 Enzo H man5 av5 gol3 def3&#10;12 Ana M man4 av3 gol4 def5">' + esc(ui.bulk) + '</textarea><button class="btn" data-a="addBulk">Agregar lista</button></div>';
   if (!vacio) {
-    h += '<button class="btn full" data-a="copyRoster">Copiar plantel como texto (respaldo)</button>';
+    // Copiar como texto: elegir qué parte del plantel (sirve de respaldo o para compartir la convocatoria).
+    const que = ui.copiaQue || 'todos';
+    const opciones = { todos: 'Plantel completo (' + store.roster.length + ')', conv: 'Convocados (' + conv.length + ')', noconv: 'No convocados (' + fuera.length + ')' };
+    h += '<div class="card stack"><label class="lbl" for="copiaQue">Copiar como texto</label>' +
+      '<div class="field"><select id="copiaQue" data-ui="copiaQue">' +
+      Object.keys(opciones).map(function (k) { return '<option value="' + k + '"' + (k === que ? ' selected' : '') + '>' + opciones[k] + '</option>'; }).join('') +
+      '</select></div>' +
+      '<button class="btn full" data-a="copyRoster"' + ((que === 'conv' && !conv.length) || (que === 'noconv' && !fuera.length) ? ' disabled' : '') + '>Copiar</button>' +
+      '<span class="muted">Mismo formato que "Agregar varios": sirve de respaldo o para pasar el plantel a otro teléfono.</span></div>';
   }
   h += '</div>';
   return h;

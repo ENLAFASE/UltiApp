@@ -267,8 +267,15 @@ function alTocar(ev) {
       break;
     }
     case 'copyRoster': {
-      const texto = porNumero(store.roster).map(lineaPlantel).join('\n');
-      const listo = function () { toast('Plantel copiado. Pégalo en una nota para respaldarlo.'); render(); };
+      // Qué copiar: plantel completo, solo convocados o solo no convocados (desplegable en Plantel).
+      const que = ui.copiaQue || 'todos';
+      const lista = store.roster.filter(function (p) {
+        return que === 'conv' ? !p.noConv : que === 'noconv' ? !!p.noConv : true;
+      });
+      if (!lista.length) { toast('No hay jugadores en esa lista'); break; }
+      const texto = porNumero(lista).map(lineaPlantel).join('\n');
+      const nombre = { todos: 'Plantel completo copiado', conv: 'Convocados copiados', noconv: 'No convocados copiados' }[que];
+      const listo = function () { toast(nombre + ' (' + lista.length + '). Pégalo en una nota o mensaje.'); render(); };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(texto).then(listo, function () { mostrarTexto('plantel.txt', texto); });
       } else mostrarTexto('plantel.txt', texto);
@@ -316,6 +323,9 @@ function alTocar(ev) {
 // Cambios en casillas, números y listas de Ajustes.
 function alCambiar(ev) {
   const el = ev.target;
+  // Opciones de la pantalla que no se guardan (por ejemplo, qué parte del plantel copiar).
+  const opUi = el.getAttribute('data-ui');
+  if (opUi) { ui[opUi] = el.value; render(); return; }
   const key = el.getAttribute('data-cfg'); if (!key) return;
   const c = store.cfg;
   if (el.type === 'checkbox') c[key] = el.checked;
