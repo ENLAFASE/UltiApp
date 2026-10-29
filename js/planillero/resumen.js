@@ -24,15 +24,31 @@ export function viewSummary() {
     h += '</tbody></table></div><p class="muted" style="margin:0">Turn suma throwaways, drops y stalls.</p>';
   }
 
-  // pulls
+  // pulls: por equipo (dentro, fuera, vuelo promedio) y por jugador de mi equipo
   h += '<h2 class="h2 disp">Pulls</h2>';
   ['us', 'them'].forEach(function (t) {
     const ps = s.pulls.filter(function (p) { return p.team === t; });
     const inN = ps.filter(function (p) { return p.inBounds; }).length;
     const timed = ps.filter(function (p) { return p.hang != null; });
-    const avg = timed.length ? (timed.reduce(function (a, p) { return a + p.hang; }, 0) / timed.length / 1000).toFixed(2) + ' s' : 'sin medir';
-    h += '<div class="item"><div class="stack" style="gap:2px"><span><span class="pill ' + (t === 'us' ? 'us' : 'th') + '">' + esc(teamName(t)) + '</span> ' + ps.length + ' pulls</span><span class="muted">Dentro ' + inN + ' de ' + ps.length + ', vuelo promedio ' + avg + '</span></div></div>';
+    const avg = timed.length ? (timed.reduce(function (a, p) { return a + p.hang; }, 0) / timed.length / 1000).toFixed(2) + ' s' : '—';
+    h += '<div class="card stack" style="gap:6px"><span><span class="pill ' + (t === 'us' ? 'us' : 'th') + '">' + esc(teamName(t)) + '</span> ' + ps.length + ' pulls</span>' +
+      '<div class="counter"><div><div class="muted">Dentro</div><div class="v disp">' + inN + '</div></div>' +
+      '<div><div class="muted">Fuera</div><div class="v disp' + (ps.length - inN ? ' warn' : '') + '">' + (ps.length - inN) + '</div></div>' +
+      '<div><div class="muted">Vuelo prom.</div><div class="v disp">' + avg + '</div></div></div>' +
+      (t === 'us' && timed.length ? '<span class="muted">Promedio de ' + timed.length + ' pull' + (timed.length === 1 ? '' : 's') + ' cronometrado' + (timed.length === 1 ? '' : 's') + '.</span>' : '') +
+      (t === 'them' ? '<span class="muted">Los pulls del rival no se cronometran.</span>' : '') + '</div>';
   });
+  const pulladores = porNumero(store.roster.filter(function (p) { return (s.stats[p.id] || {}).pulls; }));
+  if (pulladores.length) {
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Quién saca</th><th>Pulls</th><th>Dentro</th><th>Fuera</th><th>Vuelo prom.</th></tr></thead><tbody>';
+    pulladores.forEach(function (p) {
+      const x = s.stats[p.id];
+      h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pulls + '</td><td>' + x.pullIn + '</td><td>' + x.pullOut + '</td><td>' + (x.hangN ? (x.hangMs / x.hangN / 1000).toFixed(2) + ' s' : '—') + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+  const sinQuien = s.pulls.filter(function (p) { return p.team === 'us' && !p.player; }).length;
+  if (sinQuien) h += '<p class="muted" style="margin:0">' + sinQuien + ' pull' + (sinQuien === 1 ? '' : 's') + ' de ' + esc(c.club) + ' sin registrar quién lo sacó (cuentan en el total del equipo).</p>';
 
   // llamados
   h += '<h2 class="h2 disp">Llamados</h2>';

@@ -54,7 +54,10 @@ export function derive() {
   };
   let inicioPunto = null; // tiempo de juego en que salió el pull del punto
   function st(id) {
-    return s.stats[id] || (s.stats[id] = { pts: 0, ms: 0, goals: 0, ast: 0, comp: 0, catches: 0, thr: 0, drop: 0, stall: 0, blk: 0 });
+    return s.stats[id] || (s.stats[id] = {
+      pts: 0, ms: 0, goals: 0, ast: 0, comp: 0, catches: 0, thr: 0, drop: 0, stall: 0, blk: 0,
+      pulls: 0, pullIn: 0, pullOut: 0, hangMs: 0, hangN: 0 // pulls sacados, dentro, fuera y tiempo de vuelo medido
+    });
   }
   function turn(team) { s.possession = team; s.holder = null; s.chain.push({ x: true }); }
   function endPoint(w, e) {
@@ -82,7 +85,15 @@ export function derive() {
     s.log.push({ e: e, point: s.point });
     switch (e.type) {
       case 'line': s.line = e.players.slice(); s.phase = 'pull'; s.chain = []; e.players.forEach(function (id) { st(id).pts++; }); break;
-      case 'pull': s.pulls.push(Object.assign({ point: s.point }, e)); s.phase = 'play'; s.possession = s.offense; s.holder = null; inicioPunto = e.t || 0; break;
+      case 'pull':
+        s.pulls.push(Object.assign({ point: s.point }, e)); s.phase = 'play'; s.possession = s.offense; s.holder = null; inicioPunto = e.t || 0;
+        if (e.team === 'us' && e.player) {
+          const x = st(e.player);
+          x.pulls++;
+          if (e.inBounds) x.pullIn++; else x.pullOut++;
+          if (e.hang != null) { x.hangMs += e.hang; x.hangN++; }
+        }
+        break;
       case 'pickup': s.holder = e.player; s.chain.push({ id: e.player }); break;
       case 'pass': st(e.from).comp++; st(e.to).catches++; s.holder = e.to; s.chain.push({ id: e.to }); break;
       case 'goal': if (e.from) { st(e.from).ast++; st(e.from).comp++; } st(e.to).goals++; st(e.to).catches++; s.us++; endPoint('us', e); break;

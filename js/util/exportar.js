@@ -1,6 +1,6 @@
 // Exportar el partido como planillas CSV (se abren en Excel o Google Sheets).
 import { store } from '../almacen.js';
-import { describe } from '../modelos/eventos.js';
+import { describe, teamName } from '../modelos/eventos.js';
 import { fmt } from './formato.js';
 
 function csvCell(v) {
@@ -16,10 +16,22 @@ export function eventsCSV(s) {
 }
 
 export function statsCSV(s) {
-  const rows = [['numero', 'nombre', 'genero', 'puntos', 'minutos', 'goles', 'asistencias', 'pases_completos', 'recepciones', 'throwaways', 'drops', 'stalls', 'blocks']];
+  const rows = [['numero', 'nombre', 'genero', 'puntos', 'minutos', 'goles', 'asistencias', 'pases_completos', 'recepciones', 'throwaways', 'drops', 'stalls', 'blocks',
+    'pulls', 'pulls_dentro', 'pulls_fuera', 'vuelo_promedio_s']];
   store.roster.forEach(function (p) {
     const x = s.stats[p.id]; if (!x) return;
-    rows.push([p.num, p.name, p.g === 'F' ? 'M' : 'H', x.pts, Math.round((x.ms || 0) / 60000), x.goals, x.ast, x.comp, x.catches, x.thr, x.drop, x.stall, x.blk]);
+    rows.push([p.num, p.name, p.g === 'F' ? 'M' : 'H', x.pts, Math.round((x.ms || 0) / 60000), x.goals, x.ast, x.comp, x.catches, x.thr, x.drop, x.stall, x.blk,
+      x.pulls, x.pullIn, x.pullOut, x.hangN ? (x.hangMs / x.hangN / 1000).toFixed(2) : '']);
+  });
+  // Totales de pulls por equipo (incluye los pulls sin jugador registrado).
+  rows.push([]);
+  rows.push(['equipo', 'pulls', 'pulls_dentro', 'pulls_fuera', 'vuelo_promedio_s']);
+  ['us', 'them'].forEach(function (t) {
+    const ps = s.pulls.filter(function (p) { return p.team === t; });
+    const dentro = ps.filter(function (p) { return p.inBounds; }).length;
+    const med = ps.filter(function (p) { return p.hang != null; });
+    rows.push([teamName(t), ps.length, dentro, ps.length - dentro,
+      med.length ? (med.reduce(function (a, p) { return a + p.hang; }, 0) / med.length / 1000).toFixed(2) : '']);
   });
   return aCSV(rows);
 }
