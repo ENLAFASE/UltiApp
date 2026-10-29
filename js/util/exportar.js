@@ -16,10 +16,10 @@ export function eventsCSV(s) {
 }
 
 export function statsCSV(s) {
-  const rows = [['numero', 'nombre', 'genero', 'puntos', 'goles', 'asistencias', 'pases_completos', 'recepciones', 'throwaways', 'drops', 'stalls', 'blocks']];
+  const rows = [['numero', 'nombre', 'genero', 'puntos', 'minutos', 'goles', 'asistencias', 'pases_completos', 'recepciones', 'throwaways', 'drops', 'stalls', 'blocks']];
   store.roster.forEach(function (p) {
     const x = s.stats[p.id]; if (!x) return;
-    rows.push([p.num, p.name, p.g === 'F' ? 'M' : 'H', x.pts, x.goals, x.ast, x.comp, x.catches, x.thr, x.drop, x.stall, x.blk]);
+    rows.push([p.num, p.name, p.g === 'F' ? 'M' : 'H', x.pts, Math.round((x.ms || 0) / 60000), x.goals, x.ast, x.comp, x.catches, x.thr, x.drop, x.stall, x.blk]);
   });
   return aCSV(rows);
 }

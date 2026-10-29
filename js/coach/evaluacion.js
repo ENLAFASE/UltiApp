@@ -18,12 +18,7 @@ export function ev(p) {
   return { man: e.man || NIVEL_BASE, av: e.av || NIVEL_BASE, gol: e.gol || NIVEL_BASE, def: e.def || NIVEL_BASE };
 }
 
-// Nivel general del jugador para este punto. En ataque pesa más lo ofensivo;
-// en defensa pesa más la defensa.
-export function nivel(p, ataque) {
-  const e = ev(p), ofensa = (e.man + e.av + e.gol) / 3;
-  return ataque ? 0.7 * ofensa + 0.3 * e.def : 0.4 * ofensa + 0.6 * e.def;
-}
+// (El "nivel" de un jugador para cada tipo de punto se calcula en js/criterio/metricas.js.)
 
 export function resumenEv(p) {
   if (!evaluado(p)) return 'Sin evaluar';

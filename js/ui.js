@@ -9,6 +9,7 @@ export const ui = {
   selFor: null,
   ratioSwap: false,
   sug: null,           // última sugerencia de línea y su explicación
+  rankRol: 'man',      // posición que muestra el ranking del plantel
   pull: null,          // pasos del pull en curso
   pick: null,          // elegir jugador (gol, drop, block)
   call: null,

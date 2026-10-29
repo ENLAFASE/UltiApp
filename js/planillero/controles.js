@@ -1,6 +1,6 @@
 // Qué pasa al tocar cada botón. Cada botón tiene un atributo data-a="..."
 // con el nombre de la acción; aquí se decide qué hacer con cada una.
-import { store, save, cfg, DEF_CFG } from '../almacen.js';
+import { store, save, cfg, DEF_CFG, aplicarCategoria, generoFueraDeCategoria } from '../almacen.js';
 import { ui } from '../ui.js';
 import { derive } from '../modelos/partido.js';
 import { teamName } from '../modelos/eventos.js';
@@ -12,6 +12,48 @@ import { add, undo } from './acciones.js';
 import { marcarSalidaPull, keepAwake } from './reloj.js';
 import { suggestLine, currentRatio, revisarLinea, EN_CANCHA } from './linea.js';
 import { hangTick, quienSaca } from './pull.js';
+import { leerLineaPlantel, lineaPlantel } from './plantel.js';
+import { convocados } from '../criterio/recomendador.js';
+import { porNumero } from '../modelos/jugador.js';
+
+/* ---------- convocados ---------- */
+function cambiarConvocatoria(p) {
+  p.noConv = !p.noConv;
+  p.noConvAuto = false; // desde ahora es una decisión manual
+  save();
+  toast(label(p.id) + (p.noConv ? ' pasa a no convocados' : ' convocado'));
+}
+// Un jugador nuevo del género que no corresponde a la categoría entra como no convocado.
+function convocatoriaInicial(p) {
+  if (generoFueraDeCategoria(cfg().division) === p.g) { p.noConv = true; p.noConvAuto = true; }
+}
+
+/* ---------- deslizar hacia la derecha en el plantel ---------- */
+let desliz = null;
+function iniciarDesliz(ev, el) {
+  desliz = { id: el.getAttribute('data-swipe'), x: ev.clientX, y: ev.clientY, el: el, dx: 0 };
+}
+function moverDesliz(ev) {
+  if (!desliz) return;
+  const dx = ev.clientX - desliz.x, dy = ev.clientY - desliz.y;
+  if (Math.abs(dy) > 25 && Math.abs(dy) > Math.abs(dx)) { desliz.el.style.transform = ''; desliz = null; return; } // es un scroll
+  desliz.dx = Math.max(0, dx);
+  desliz.el.style.transform = 'translateX(' + Math.min(desliz.dx, 140) + 'px)';
+  desliz.el.classList.toggle('listo', desliz.dx > 90);
+}
+function terminarDesliz() {
+  if (!desliz) return;
+  const d = desliz; desliz = null;
+  d.el.style.transform = ''; d.el.classList.remove('listo');
+  if (d.dx > 90) {
+    const p = P(d.id);
+    if (p) cambiarConvocatoria(p);
+    ui.ignoreClickUntil = performance.now() + 400; // que no se abra la ficha
+    render();
+  } else if (d.dx > 10) {
+    ui.ignoreClickUntil = performance.now() + 300;
+  }
+}
 
 function mostrarTexto(name, text) { ui.modal = { kind: 'text', title: name, text: text }; render(); }
 
@@ -53,6 +95,8 @@ function presionarRatio(b) {
 }
 
 function alPresionar(ev) {
+  const fila = ev.target.closest('[data-swipe]');
+  if (fila) { iniciarDesliz(ev, fila); return; }
   const r = ev.target.closest('[data-a="swapRatio"]');
   if (r) { presionarRatio(r); return; }
   const b = ev.target.closest('[data-a="hang"],[data-a="hangStop"]'); if (!b) return;
@@ -85,6 +129,7 @@ function alTocar(ev) {
     }
     case 'suggest': suggestLine(s); break;
     case 'openWhy': ui.modal = { kind: 'why', title: '¿Por qué esta línea?' }; break;
+    case 'openLineInfo': ui.modal = { kind: 'lineinfo', title: 'Línea marcada' }; break;
     case 'clearSel': ui.sel = []; ui.sug = null; break;
     case 'swapRatio':
       // Con teclado (Enter) se cambia directo; con el dedo hay que mantener presionado.
@@ -188,24 +233,48 @@ function alTocar(ev) {
     case 'addP': {
       const np = ui.newP;
       if (!String(np.num).trim()) { toast('Falta el número'); break; }
-      store.roster.push({ id: uid(), num: String(np.num).trim(), name: np.name.trim(), g: np.g });
+      const nuevo = { id: uid(), num: String(np.num).trim(), name: np.name.trim(), g: np.g };
+      convocatoriaInicial(nuevo);
+      store.roster.push(nuevo);
       save(); ui.newP = { num: '', name: '', g: np.g }; toast('Jugador agregado');
       break;
     }
     case 'addBulk': {
-      let n = 0;
-      ui.bulk.split(/\n/).forEach(function (line) {
-        line = line.trim(); if (!line) return;
-        // Letra final: H = hombre, M = mujer (también se acepta F = mujer).
-        // Internamente se guarda 'M' para hombre y 'F' para mujer.
-        const mm = line.match(/^(\d+)\s*(.*?)(?:\s+([HMFhmf]))?$/); if (!mm) return;
-        const letra = (mm[3] || 'H').toUpperCase();
-        store.roster.push({ id: uid(), num: mm[1], name: (mm[2] || '').trim(), g: letra === 'H' ? 'M' : 'F' });
-        n++;
+      // Formato: "36 Enzo H man5 av5 gol3 def3" (la evaluación es opcional).
+      // Si ya existe un jugador con el mismo número y nombre, se actualiza.
+      let nuevos = 0, actualizados = 0, malas = 0;
+      ui.bulk.split(/\n/).forEach(function (linea) {
+        if (!linea.trim()) return;
+        const d = leerLineaPlantel(linea); if (!d) { malas++; return; }
+        const existe = store.roster.find(function (p) {
+          return p.num === d.num && (p.name || '').toLowerCase() === d.name.toLowerCase();
+        });
+        if (existe) {
+          if (d.g) existe.g = d.g;
+          if (Object.keys(d.ev).length) existe.ev = Object.assign({}, existe.ev || {}, d.ev);
+          actualizados++;
+        } else {
+          const p = { id: uid(), num: d.num, name: d.name, g: d.g || 'M' };
+          if (Object.keys(d.ev).length) p.ev = d.ev;
+          convocatoriaInicial(p);
+          store.roster.push(p);
+          nuevos++;
+        }
       });
-      save(); ui.bulk = ''; toast(n + ' jugadores agregados');
+      save(); ui.bulk = '';
+      toast(nuevos + ' agregados' + (actualizados ? ', ' + actualizados + ' actualizados' : '') + (malas ? ', ' + malas + ' líneas sin número' : ''));
       break;
     }
+    case 'copyRoster': {
+      const texto = porNumero(store.roster).map(lineaPlantel).join('\n');
+      const listo = function () { toast('Plantel copiado. Pégalo en una nota para respaldarlo.'); render(); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(listo, function () { mostrarTexto('plantel.txt', texto); });
+      } else mostrarTexto('plantel.txt', texto);
+      return;
+    }
+    case 'rankRol': ui.rankRol = v; break;
+    case 'convP': { const p = P(id); if (p) cambiarConvocatoria(p); break; }
 
     // editar jugador y evaluación privada (coach)
     case 'editP': ui.modal = { kind: 'player', id: id, title: 'Editar jugador' }; break;
@@ -225,7 +294,7 @@ function alTocar(ev) {
     case 'delP': store.roster = store.roster.filter(function (p) { return p.id !== id; }); ui.modal = null; save(); toast('Jugador quitado'); break;
     case 'firstPull': store.cfg.firstPull = v; save(); break;
     case 'startGame':
-      if (!store.roster.length) return;
+      if (!convocados().length) return;
       // Recibe el primer pull el equipo que NO lo saca.
       store.game = { firstOffense: cfg().firstPull === 'us' ? 'them' : 'us', events: [], start: null, finishedAt: null, created: Date.now() };
       ui.sel = []; ui.selFor = null; ui.pull = null; ui.pick = null; ui.view = null;
@@ -251,6 +320,14 @@ function alCambiar(ev) {
   if (el.type === 'checkbox') c[key] = el.checked;
   else if (el.type === 'number') c[key] = Math.max(0, parseInt(el.value, 10) || 0);
   else c[key] = el.value.trim() || DEF_CFG[key];
+  if (key === 'margenVentaja' || key === 'margenDesventaja') c[key] = Math.max(1, c[key]);
+  if (key === 'division') {
+    // "mixed" se mantiene para el resto de la app; los del otro género pasan a no convocados.
+    c.mixed = c.division === 'mixto';
+    aplicarCategoria(store);
+    const fuera = store.roster.filter(function (p) { return p.noConvAuto; }).length;
+    if (fuera) toast(fuera + ' jugador(es) pasan a no convocados por la categoría');
+  }
   save(); render();
 }
 
@@ -275,8 +352,12 @@ function alEscribir(ev) {
 
 export function conectarControles(app) {
   app.addEventListener('pointerdown', alPresionar);
-  app.addEventListener('pointerup', soltarPresion);
-  app.addEventListener('pointercancel', soltarPresion);
+  app.addEventListener('pointerup', function () { soltarPresion(); terminarDesliz(); });
+  app.addEventListener('pointercancel', function () {
+    soltarPresion();
+    if (desliz) { desliz.el.style.transform = ''; desliz = null; }
+  });
+  app.addEventListener('pointermove', moverDesliz);
   // Evita el menú del navegador al mantener presionado el cuadro de proporción.
   app.addEventListener('contextmenu', function (ev) { if (ev.target.closest('[data-a="swapRatio"]')) ev.preventDefault(); });
   app.addEventListener('click', alTocar);

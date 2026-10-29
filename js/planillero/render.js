@@ -6,8 +6,9 @@ import { derive } from '../modelos/partido.js';
 import { esc } from '../util/formato.js';
 import { viewGame } from './juego.js';
 import { viewSummary } from './resumen.js';
-import { viewSettings, modalJugador } from './ajustes.js';
-import { modalPorQue } from './linea.js';
+import { viewSettings } from './ajustes.js';
+import { viewPlantel, modalJugador } from './plantel.js';
+import { modalPorQue, modalInfoLinea } from './linea.js';
 
 const app = document.getElementById('app');
 
@@ -16,6 +17,7 @@ export function render() {
   let body;
   if (ui.tab === 'game') body = viewGame();
   else if (ui.tab === 'summary') body = viewSummary();
+  else if (ui.tab === 'roster') body = viewPlantel();
   else body = viewSettings();
   // Durante el partido, la pantalla ocupa exactamente el alto del teléfono (sin desplazar).
   const pantallaFija = ui.tab === 'game' && !!store.game;
@@ -36,9 +38,18 @@ export function toast(t) {
   }, 1800);
 }
 
+// Barra inferior con 2 bloques: Partido / Resumen y Ajustes / Plantel.
+// La vista actual se ve más grande; se cambia tocando su nombre.
 function tabs() {
-  function t(id, txt) { return '<button class="tab" data-a="tab" data-v="' + id + '"' + (ui.tab === id ? ' aria-current="page"' : '') + '>' + txt + '</button>'; }
-  return '<nav class="tabs" aria-label="Secciones"><div class="tabs-in">' + t('game', 'Partido') + t('summary', 'Resumen') + t('settings', 'Ajustes') + '</div></nav>';
+  function t(id, txt) {
+    return '<button class="tab" data-a="tab" data-v="' + id + '"' + (ui.tab === id ? ' aria-current="page"' : '') + '>' + txt + '</button>';
+  }
+  function bloque(a, ta, b, tb) {
+    const activo = ui.tab === a || ui.tab === b;
+    return '<div class="tgrp' + (activo ? ' on' : '') + '">' + t(a, ta) + '<span class="tsep">/</span>' + t(b, tb) + '</div>';
+  }
+  return '<nav class="tabs" aria-label="Secciones"><div class="tabs-in">' +
+    bloque('game', 'Partido', 'summary', 'Resumen') + bloque('settings', 'Ajustes', 'roster', 'Plantel') + '</div></nav>';
 }
 
 // Ventanas que suben desde abajo: timeout, confirmar, texto exportado.
@@ -57,6 +68,8 @@ function modalHTML() {
       '<button class="btn full" data-a="closeModal">Cancelar</button>';
   } else if (m.kind === 'why') {
     h += modalPorQue();
+  } else if (m.kind === 'lineinfo') {
+    h += modalInfoLinea(derive());
   } else if (m.kind === 'player') {
     h += modalJugador(m.id);
   } else if (m.kind === 'confirm') {

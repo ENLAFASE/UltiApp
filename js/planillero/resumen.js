@@ -16,10 +16,10 @@ export function viewSummary() {
   const rows = porNumero(store.roster.filter(function (p) { return s.stats[p.id]; }));
   if (!rows.length) h += '<p class="muted">Aún no hay estadísticas de jugadores.</p>';
   else {
-    h += '<div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Gol</th><th>Ast</th><th>Pases</th><th>Turn</th><th>Blk</th></tr></thead><tbody>';
+    h += '<div class="tbl-wrap"><table><thead><tr><th>Jugador</th><th>Pts</th><th>Min</th><th>Gol</th><th>Ast</th><th>Pases</th><th>Turn</th><th>Blk</th></tr></thead><tbody>';
     rows.forEach(function (p) {
       const x = s.stats[p.id];
-      h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pts + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td><td>' + x.comp + '</td><td>' + (x.thr + x.drop + x.stall) + '</td><td>' + x.blk + '</td></tr>';
+      h += '<tr><td>' + esc(label(p.id)) + '</td><td>' + x.pts + '</td><td>' + Math.round((x.ms || 0) / 60000) + '</td><td>' + x.goals + '</td><td>' + x.ast + '</td><td>' + x.comp + '</td><td>' + (x.thr + x.drop + x.stall) + '</td><td>' + x.blk + '</td></tr>';
     });
     h += '</tbody></table></div><p class="muted" style="margin:0">Turn suma throwaways, drops y stalls.</p>';
   }

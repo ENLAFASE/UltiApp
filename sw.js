@@ -3,7 +3,7 @@
 //
 // IMPORTANTE: cada vez que cambies cualquier archivo de la app, sube el número
 // de VERSION. Así los teléfonos saben que hay una versión nueva y la descargan.
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE_APP = 'ultiapp-' + VERSION;
 const CACHE_FUENTES = 'ultiapp-fuentes';
 
@@ -28,7 +28,10 @@ const ARCHIVOS = [
   'js/modelos/eventos.js',
   'js/modelos/partido.js',
   'js/coach/evaluacion.js',
-  'js/coach/recomendador.js',
+  'js/criterio/parametros.js',
+  'js/criterio/metricas.js',
+  'js/criterio/zonas.js',
+  'js/criterio/recomendador.js',
   'js/planillero/acciones.js',
   'js/planillero/ajustes.js',
   'js/planillero/controles.js',
@@ -36,6 +39,7 @@ const ARCHIVOS = [
   'js/planillero/linea.js',
   'js/planillero/llamados.js',
   'js/planillero/marcador.js',
+  'js/planillero/plantel.js',
   'js/planillero/pull.js',
   'js/planillero/reloj.js',
   'js/planillero/render.js',

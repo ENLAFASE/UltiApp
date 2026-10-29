@@ -19,8 +19,8 @@ El dueño del proyecto no es programador profesional. Explicar cada paso de form
 ### 2. Coach (restringido; cuentas aprobadas por el administrador) — **en construcción**
 - Todo el registro del partido: línea con proporción mixta ABBA, pull (quién saca, tiempo de vuelo, dentro/fuera), recepción y pases, goles, asistencias, turnovers, defensas, llamados (equipo que llama, tipo, resolución, posesión), timeouts con cuenta regresiva.
 - Evaluación **privada** de jugadores, 1 a 5 en: manejo, corte de avance, corte de gol y defensa (`js/coach/evaluacion.js`).
-- Recomendador de líneas que **explica** por qué sugiere cada jugador (`js/coach/recomendador.js`), con tres criterios:
-  - **Competencia:** siempre asegura la columna vertical (manejo, corte de avance y corte de gol buenos) y completa según el marcador: empatados o perdiendo → máximo nivel; ganando por poco → nivel alto con algo de descanso; ganando por el margen para rotar (`cfg.compMargin`, en Ajustes, por defecto 3) o más → rotación con minutos para el nivel más bajo. Nunca pone a los 7 de menor nivel.
+- Recomendador de líneas ("motor de juego") que **explica** por qué sugiere cada jugador. Todo el criterio está aislado en `js/criterio/` para pulirlo con feedback de cancha; el análisis completo está en `docs/criterio.md`. Tres criterios:
+  - **Competencia:** según la zona del marcador (`zonas.js`): asegurar el ataque (inicio, parejo, ventaja moderada), línea fuerte (leve desventaja, cierre parejo, partido crucial), rotación con piezas clave (ventaja ≥ margen de ventaja, por defecto +4) y descanso de piezas clave (desventaja ≥ margen de desventaja, por defecto −6). Ajustes: modalidad (automática o fija), nivel del rival y partido crucial. Siempre asegura la columna vertical con 3 personas distintas.
   - **Amistoso:** rota, pero asegura una columna vertical de 3: un manejo, un corte de avance y un corte de gol principales (nota 4 o más).
   - **Entrenamiento:** rotación pareja (descansó el punto anterior, menos puntos jugados).
   - Siempre 7 jugadores y respetando la proporción de géneros si es mixto. En ataque pesa más lo ofensivo; en defensa, la defensa.
@@ -66,8 +66,12 @@ UltiApp/
     ├── almacen.js            # datos guardados: cfg, plantel, partido (localStorage 'ufs-v1')
     ├── ui.js                 # estado temporal de la pantalla (no se guarda)
     ├── coach/
-    │   ├── evaluacion.js     # evaluación 1-5 de jugadores (privada, no se exporta)
-    │   └── recomendador.js   # sugerencia de línea: competencia / amistoso / entrenamiento
+    │   └── evaluacion.js     # evaluación 1-5 de jugadores (privada, no se exporta)
+    ├── criterio/             # MOTOR DE JUEGO (ver docs/criterio.md)
+    │   ├── parametros.js     # todos los números ajustables del motor
+    │   ├── zonas.js          # marcador → modalidad (asegurar ataque, línea fuerte, rotación, descanso)
+    │   ├── metricas.js       # nivel de jugador, métricas de línea, análisis del plantel
+    │   └── recomendador.js   # arma la línea de 7 y explica cada elección
     ├── modelos/
     │   ├── partido.js        # derive() (eventos → marcador y estadísticas), reloj, caps, ABBA
     │   ├── jugador.js        # buscar y mostrar jugadores
@@ -83,7 +87,8 @@ UltiApp/
     │   ├── pull.js
     │   ├── llamados.js
     │   ├── resumen.js        # pestaña Resumen
-    │   └── ajustes.js        # pestaña Ajustes y plantel
+    │   ├── ajustes.js        # pestaña Ajustes (partido, criterio y mapa del marcador)
+    │   └── plantel.js        # pestaña Plantel (visión, convocados, edición, carga por texto)
     └── util/
         ├── formato.js        # esc(), fmt(), nombres de archivo
         └── exportar.js       # CSV de estadísticas y eventos
@@ -102,7 +107,11 @@ Las pantallas del partido están en `js/planillero/` por razones históricas, pe
 - **Jugadores en pantalla:** nombre abreviado a 3 letras en grande ("Rod"), número chico debajo (`htmlBoton` en `js/modelos/jugador.js`).
 - **Género:** en pantalla H = hombre y M = mujer. Internamente sigue 'M' = hombre y 'F' = mujer (datos antiguos). Colores: `--hom` (petróleo) y `--muj` (fucsia), con texto blanco.
 - **Proporción:** el cuadro toma el color del género que predomina y se cambia solo manteniendo presionado 1 segundo.
-- **Plantel:** tocar un jugador en Ajustes abre su edición (número, nombre, género, evaluación, quitar). Los sin evaluar se marcan en naranjo.
+- **Barra inferior:** 2 bloques, "Partido / Resumen" y "Ajustes / Plantel"; la vista actual con letra más grande.
+- **Línea:** solo convocados; cada botón muestra puntos y minutos jugados ("3p 6'"). Con 7 marcados, el lugar de "Sugerir" muestra la tarjeta de la línea (nivel, mejor manejo/avance/gol, desgaste).
+- **Plantel (pestaña propia):** visión de la evaluación (puntaje global, por posición, ranking, alertas), convocados y no convocados (deslizar a la derecha para cambiar; la categoría femenino/open marca sola al otro género), edición al tocar, carga por texto `36 Enzo H man5 av5 gol3 def3` y copia de respaldo en el mismo formato. Campos por jugador: `noConv`, `noConvAuto` (marcado por la categoría).
+- **Tipo de partido:** `cfg.division` = mixto / open / femenino; `cfg.mixed` se mantiene sincronizado (true solo en mixto).
+- **Medio tiempo:** `cfg.halfMode` = first (lo que ocurra primero) / points / time.
 - **Llamado:** pantalla completa con 4 pasos numerados (qué equipo llama, tipo, resolución, posesión). No se registra el jugador que llama.
 
 Cómo funciona: toda la pantalla se dibuja como texto HTML en `render()`. Cada botón tiene `data-a="accion"` y `controles.js` decide qué hacer. Tras cada cambio se guarda (`save()`) y se vuelve a dibujar (`render()`).
@@ -125,8 +134,8 @@ Agregar el archivo nuevo a la lista `ARCHIVOS` de `sw.js` y subir `VERSION`. Si 
 ## Fases
 
 1. Planificación, CLAUDE.md, estructura, repositorio git. ✅
-2. **(actual)** Migrar el prototipo a la estructura PWA (Planillero completo, sin conexión). Migración hecha; falta probar instalación y modo sin señal en teléfono.
-3. Publicar en GitHub Pages y probar en partidos reales.
-4. Supabase: cuentas, roles, sincronización, consentimiento y borrado de cuenta.
-5. Modalidad Coach.
+2. Migrar el prototipo a la estructura PWA, sin conexión. ✅ (publicada en GitHub Pages: https://enlafase.github.io/UltiApp/)
+3. **(actual)** Modalidad Coach: registro secuencial, evaluación, motor de juego. Probar en partidos reales y pulir `js/criterio/` con ese feedback.
+4. Planillero simplificado (solo estadísticas y tiempos).
+5. Supabase: cuentas, roles, sincronización, consentimiento y borrado de cuenta. Historial de partidos (IndexedDB).
 6. Modalidad Jugador (piloto con el club).

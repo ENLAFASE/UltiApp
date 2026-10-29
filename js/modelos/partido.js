@@ -23,7 +23,7 @@ export function capInfo(s) {
   const c = cfg(), ms = elapsed(), soft = c.softCap * 60000, hard = c.hardCap * 60000;
   if (s && s.ended) return '';
   if (hard && ms >= hard) return 'Tiempo cumplido';
-  if (s && !s.half && c.halfMode === 'time' && c.halfMin && ms >= c.halfMin * 60000) return 'Medio tiempo al terminar el punto';
+  if (s && !s.half && c.halfMode !== 'points' && c.halfMin && ms >= c.halfMin * 60000) return 'Medio tiempo al terminar el punto';
   if (soft && ms >= soft) return hard ? 'Cap blando · fin en ' + fmt(hard - ms) : 'Cap blando alcanzado';
   if (soft) return 'Cap blando en ' + fmt(soft - ms);
   if (hard) return 'Fin en ' + fmt(hard - ms);
@@ -52,18 +52,25 @@ export function derive() {
     line: [], lastLine: [], chain: [], stats: {}, pulls: [], calls: [], to: { us: 0, them: 0 },
     half: false, halfPoint: null, ended: false, log: [], last: null, pointLog: []
   };
+  let inicioPunto = null; // tiempo de juego en que salió el pull del punto
   function st(id) {
-    return s.stats[id] || (s.stats[id] = { pts: 0, goals: 0, ast: 0, comp: 0, catches: 0, thr: 0, drop: 0, stall: 0, blk: 0 });
+    return s.stats[id] || (s.stats[id] = { pts: 0, ms: 0, goals: 0, ast: 0, comp: 0, catches: 0, thr: 0, drop: 0, stall: 0, blk: 0 });
   }
   function turn(team) { s.possession = team; s.holder = null; s.chain.push({ x: true }); }
   function endPoint(w, e) {
-    s.pointLog.push({ point: s.point, winner: w, offense: s.offense, line: s.line.slice() });
+    // Minutos jugados: duración del punto (desde el pull hasta el gol) para cada jugador de la línea.
+    const dur = inicioPunto != null ? Math.max(0, (e.t || 0) - inicioPunto) : 0;
+    s.line.forEach(function (id) { st(id).ms += dur; });
+    inicioPunto = null;
+    s.pointLog.push({ point: s.point, winner: w, offense: s.offense, line: s.line.slice(), ms: dur });
     s.lastLine = s.line.slice(); s.point++; s.phase = 'line'; s.possession = null; s.holder = null; s.chain = [];
     // Saca el pull el equipo que anotó; recibe el otro.
     s.offense = (w === 'us') ? 'them' : 'us';
-    const llegaMedio = c.halfMode === 'time'
-      ? (c.halfMin && (e.t || 0) >= c.halfMin * 60000)
-      : (c.halfAt && Math.max(s.us, s.them) >= c.halfAt);
+    const porPuntos = !!(c.halfAt && Math.max(s.us, s.them) >= c.halfAt);
+    const porTiempo = !!(c.halfMin && (e.t || 0) >= c.halfMin * 60000);
+    const llegaMedio = c.halfMode === 'time' ? porTiempo
+      : c.halfMode === 'first' ? (porPuntos || porTiempo)
+      : porPuntos;
     if (!s.half && llegaMedio) {
       // En la segunda mitad recibe el equipo que sacó el primer pull.
       s.half = true; s.halfPoint = s.point;
@@ -75,7 +82,7 @@ export function derive() {
     s.log.push({ e: e, point: s.point });
     switch (e.type) {
       case 'line': s.line = e.players.slice(); s.phase = 'pull'; s.chain = []; e.players.forEach(function (id) { st(id).pts++; }); break;
-      case 'pull': s.pulls.push(Object.assign({ point: s.point }, e)); s.phase = 'play'; s.possession = s.offense; s.holder = null; break;
+      case 'pull': s.pulls.push(Object.assign({ point: s.point }, e)); s.phase = 'play'; s.possession = s.offense; s.holder = null; inicioPunto = e.t || 0; break;
       case 'pickup': s.holder = e.player; s.chain.push({ id: e.player }); break;
       case 'pass': st(e.from).comp++; st(e.to).catches++; s.holder = e.to; s.chain.push({ id: e.to }); break;
       case 'goal': if (e.from) { st(e.from).ast++; st(e.from).comp++; } st(e.to).goals++; st(e.to).catches++; s.us++; endPoint('us', e); break;
@@ -91,6 +98,15 @@ export function derive() {
     }
     s.last = e;
   });
+  // Racha: cuántos puntos seguidos lleva jugando cada uno (contando desde el último).
+  s.racha = {};
+  for (let i = s.pointLog.length - 1; i >= 0; i--) {
+    const linea = s.pointLog[i].line;
+    Object.keys(s.stats).forEach(function (id) {
+      if (s.racha[id] === undefined) s.racha[id] = 0;
+      if (s.racha[id] === s.pointLog.length - 1 - i && linea.indexOf(id) >= 0) s.racha[id]++;
+    });
+  }
   // Timeout en curso: el último evento es un timeout que aún no se reanuda.
   s.timeout = (s.last && s.last.type === 'timeout' && !s.last.fin && !s.ended) ? s.last : null;
   return s;
